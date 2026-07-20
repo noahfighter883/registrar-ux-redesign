@@ -22,12 +22,12 @@ const TITLES: Record<string, string[]> = {
   WL: ["Elementary French I", "Intermediate Spanish", "German Culture & Film", "Elementary Japanese I"],
 };
 
-const INSTRUCTORS = [
+export const INSTRUCTORS = [
   "Kleinsmith, Abigail", "Sweeney, Sarah", "Tamagawa, Masami", "Lander, Maria",
   "Knight-Mosby, Dorothy", "Matheron, Aurelie", "Schebetta, Dennis", "Brueggemann, John",
   "Possidente, Bernard", "Raththagala, Madushi", "Kennerly, Will", "Roca, Maryuri",
   "Chen, Wei", "Okafor, Ade", "Nguyen, Thi", "Patel, Ravi",
-];
+].sort();
 
 const BUILDINGS = ["Tisch", "Palamountain", "Harder", "Dana", "Ladd", "Bolton"];
 
