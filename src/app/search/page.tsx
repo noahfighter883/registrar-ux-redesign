@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DEPARTMENTS } from "@/lib/departments";
 import { useTerm } from "@/lib/useTerm";
 import DepartmentCombobox from "@/components/DepartmentCombobox";
+import InstructorCombobox from "@/components/InstructorCombobox";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function SearchPage() {
   const [dept, setDept] = useState("");
   const [subCode, setSubCode] = useState("");
   const [title, setTitle] = useState("");
+  const [instructor, setInstructor] = useState("");
   const [courseMin, setCourseMin] = useState("");
   const [courseMax, setCourseMax] = useState("");
   const [creditMin, setCreditMin] = useState("");
@@ -31,14 +33,15 @@ export default function SearchPage() {
   };
 
   const canClear = useMemo(
-    () => dept || subCode || title || courseMin || courseMax || creditMin || creditMax || openOnly,
-    [dept, subCode, title, courseMin, courseMax, creditMin, creditMax, openOnly]
+    () => dept || subCode || title || instructor || courseMin || courseMax || creditMin || creditMax || openOnly,
+    [dept, subCode, title, instructor, courseMin, courseMax, creditMin, creditMax, openOnly]
   );
 
   function clearAll() {
     setDept("");
     setSubCode("");
     setTitle("");
+    setInstructor("");
     setCourseMin("");
     setCourseMax("");
     setCreditMin("");
@@ -51,6 +54,7 @@ export default function SearchPage() {
     if (dept) params.set("dept", dept);
     if (subCode) params.set("subCode", subCode);
     if (title) params.set("title", title);
+    if (instructor) params.set("instructor", instructor);
     if (courseMin) params.set("courseMin", courseMin);
     if (courseMax) params.set("courseMax", courseMax);
     if (creditMin) params.set("creditMin", creditMin);
@@ -103,6 +107,10 @@ export default function SearchPage() {
             placeholder="e.g. Organic Chemistry"
             className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
           />
+        </Field>
+
+        <Field label="Professor">
+          <InstructorCombobox value={instructor} onChange={setInstructor} />
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
