@@ -27,4 +27,4 @@ npm run dev
 
 ## Deployment
 
-Deployed on Vercel from this repo's `main` branch.
+Deployed on Vercel from this repo's `main` branch or [here](https://registrar-ux-redesign.vercel.app/).
