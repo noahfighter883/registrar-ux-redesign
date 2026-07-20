@@ -1,6 +1,6 @@
 # Registrar — Course Registration UX Redesign
 
-A functional prototype rebuilding a college course registration portal's core "find and register for classes" flow, based on a UX case study auditing an existing Ellucian/Banner-style system. **[Read the full case study →]([./CASE_STUDY.md](https://docs.google.com/document/d/1JOj_ZjTxVr-80OZewXi0UGWPBMbZaEOyF-W_7YbGBxQ/edit?usp=sharing))**
+A functional prototype rebuilding a college course registration portal's core "find and register for classes" flow, based on a UX case study auditing an existing Ellucian/Banner-style system. **[Read the full case study →](https://docs.google.com/document/d/1JOj_ZjTxVr-80OZewXi0UGWPBMbZaEOyF-W_7YbGBxQ/edit?usp=sharing)**
 
 ## What this is
 
