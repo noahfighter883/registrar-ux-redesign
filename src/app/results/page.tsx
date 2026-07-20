@@ -108,10 +108,10 @@ function ResultsInner() {
       </div>
 
       <div className="rounded-2xl border border-line bg-card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-16 z-10">
-              <tr className="bg-paper border-b border-line">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-paper border-b border-line shadow-[0_1px_0_0_var(--line)]">
                 <Th>Course</Th>
                 <Th>Title</Th>
                 <Th>Instructor</Th>
