@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #faf9f6;
+  --card: #ffffff;
+  --ink: #16233f;
+  --ink-soft: #4a5372;
+  --line: #e3e0d8;
+  --muted: #8a8a80;
+  --gold: #b8862b;
+  --gold-soft: #f4e9d4;
+  --open: #2f6846;
+  --open-soft: #e6f0e9;
+  --full: #a92f26;
+  --full-soft: #fbe9e6;
+  --wait: #a06a12;
+  --wait-soft: #fbf0dd;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-open: var(--open);
+  --color-open-soft: var(--open-soft);
+  --color-full: var(--full);
+  --color-full-soft: var(--full-soft);
+  --color-wait: var(--wait);
+  --color-wait-soft: var(--wait-soft);
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-plexmono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
