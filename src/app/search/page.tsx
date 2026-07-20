@@ -3,25 +3,36 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEPARTMENTS } from "@/lib/departments";
+import { INSTRUCTORS } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
-import DepartmentCombobox from "@/components/DepartmentCombobox";
-import InstructorCombobox from "@/components/InstructorCombobox";
+import MultiSelectCombobox from "@/components/MultiSelectCombobox";
 
 export default function SearchPage() {
   const router = useRouter();
   const { term } = useTerm();
 
-  const [dept, setDept] = useState("");
+  const [depts, setDepts] = useState<string[]>([]);
   const [subCode, setSubCode] = useState("");
   const [title, setTitle] = useState("");
-  const [instructor, setInstructor] = useState("");
+  const [instructors, setInstructors] = useState<string[]>([]);
   const [courseMin, setCourseMin] = useState("");
   const [courseMax, setCourseMax] = useState("");
   const [creditMin, setCreditMin] = useState("");
   const [creditMax, setCreditMax] = useState("");
   const [openOnly, setOpenOnly] = useState(false);
 
-  const selectedDept = DEPARTMENTS.find((d) => d.code === dept);
+  const deptItems = useMemo(
+    () => DEPARTMENTS.map((d) => ({ value: d.code, label: d.name })),
+    []
+  );
+  const instructorItems = useMemo(
+    () => INSTRUCTORS.map((name) => ({ value: name, label: name })),
+    []
+  );
+
+  // Only show the sub-track picker when exactly one selected department has tracks.
+  const singleSelectedDept =
+    depts.length === 1 ? DEPARTMENTS.find((d) => d.code === depts[0]) : undefined;
 
   const numericProps = {
     inputMode: "numeric" as const,
@@ -33,15 +44,24 @@ export default function SearchPage() {
   };
 
   const canClear = useMemo(
-    () => dept || subCode || title || instructor || courseMin || courseMax || creditMin || creditMax || openOnly,
-    [dept, subCode, title, instructor, courseMin, courseMax, creditMin, creditMax, openOnly]
+    () =>
+      depts.length > 0 ||
+      subCode ||
+      title ||
+      instructors.length > 0 ||
+      courseMin ||
+      courseMax ||
+      creditMin ||
+      creditMax ||
+      openOnly,
+    [depts, subCode, title, instructors, courseMin, courseMax, creditMin, creditMax, openOnly]
   );
 
   function clearAll() {
-    setDept("");
+    setDepts([]);
     setSubCode("");
     setTitle("");
-    setInstructor("");
+    setInstructors([]);
     setCourseMin("");
     setCourseMax("");
     setCreditMin("");
@@ -51,10 +71,10 @@ export default function SearchPage() {
 
   function handleSearch() {
     const params = new URLSearchParams();
-    if (dept) params.set("dept", dept);
+    if (depts.length) params.set("dept", depts.join(","));
     if (subCode) params.set("subCode", subCode);
     if (title) params.set("title", title);
-    if (instructor) params.set("instructor", instructor);
+    if (instructors.length) params.set("instructor", instructors.join("|"));
     if (courseMin) params.set("courseMin", courseMin);
     if (courseMax) params.set("courseMax", courseMax);
     if (creditMin) params.set("creditMin", creditMin);
@@ -73,25 +93,28 @@ export default function SearchPage() {
       </h1>
 
       <div className="rounded-2xl border border-line bg-card p-6 md:p-8 space-y-6">
-        <Field label="Department or Program">
-          <DepartmentCombobox
-            value={dept}
+        <Field label="Departments or Programs" hint="Select one or more">
+          <MultiSelectCombobox
+            items={deptItems}
+            selected={depts}
             onChange={(v) => {
-              setDept(v);
+              setDepts(v);
               setSubCode("");
             }}
+            placeholder="Any department"
+            searchPlaceholder="Search departments…"
           />
         </Field>
 
-        {selectedDept?.subCodes && (
-          <Field label={`Specific ${selectedDept.name} track`} hint="Optional — narrows within this department">
+        {singleSelectedDept?.subCodes && (
+          <Field label={`Specific ${singleSelectedDept.name} track`} hint="Optional — narrows within this department">
             <select
               value={subCode}
               onChange={(e) => setSubCode(e.target.value)}
               className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink outline-none focus-visible:outline-2 focus-visible:outline-gold"
             >
               <option value="">Any track</option>
-              {selectedDept.subCodes.map((s) => (
+              {singleSelectedDept.subCodes.map((s) => (
                 <option key={s.code} value={s.code}>
                   {s.label}
                 </option>
@@ -109,8 +132,14 @@ export default function SearchPage() {
           />
         </Field>
 
-        <Field label="Professor">
-          <InstructorCombobox value={instructor} onChange={setInstructor} />
+        <Field label="Professors" hint="Select one or more">
+          <MultiSelectCombobox
+            items={instructorItems}
+            selected={instructors}
+            onChange={setInstructors}
+            placeholder="Any professor"
+            searchPlaceholder="Search professors…"
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
