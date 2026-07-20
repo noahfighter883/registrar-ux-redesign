@@ -1,88 +1,252 @@
-import Link from "next/link";
+"use client";
 
-const secondaryCards = [
-  {
-    href: "/prepare",
-    title: "Prepare for Registration",
-    body: "Check your registration status and clear any holds before your window opens.",
-    icon: (
-      <path d="M9 12l2 2 4-4M7 4h10a2 2 0 012 2v13a1 1 0 01-1.45.9L12 18l-5.55 1.9A1 1 0 015 19V6a2 2 0 012-2z" />
-    ),
-  },
-  {
-    href: "/results",
-    title: "My Schedule",
-    body: "View your current, past, and in-progress class schedules.",
-    icon: <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-  },
-  {
-    href: "/catalog",
-    title: "Course Catalog",
-    body: "Look up course descriptions, not tied to a specific term.",
-    icon: <path d="M12 6.25C10.5 5 8.5 4.5 6.5 4.5c-1.13 0-2.23.16-3.25.47v13.28c1.02-.31 2.12-.47 3.25-.47 2 0 4 .5 5.5 1.75m0-14C13.5 5 15.5 4.5 17.5 4.5c1.13 0 2.23.16 3.25.47v13.28c-1.02-.31-2.12-.47-3.25-.47-2 0-4 .5-5.5 1.75m0-14v14" />,
-  },
-];
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { DEPARTMENTS } from "@/lib/departments";
+import { INSTRUCTORS } from "@/lib/mockCourses";
+import { useTerm } from "@/lib/useTerm";
+import MultiSelectCombobox from "@/components/MultiSelectCombobox";
 
-export default function DashboardPage() {
+export default function SearchPage() {
+  const router = useRouter();
+  const { term } = useTerm();
+
+  const [depts, setDepts] = useState<string[]>([]);
+  const [subCode, setSubCode] = useState("");
+  const [title, setTitle] = useState("");
+  const [instructors, setInstructors] = useState<string[]>([]);
+  const [courseMin, setCourseMin] = useState("");
+  const [courseMax, setCourseMax] = useState("");
+  const [creditMin, setCreditMin] = useState("");
+  const [creditMax, setCreditMax] = useState("");
+  const [openOnly, setOpenOnly] = useState(false);
+
+  const deptItems = useMemo(
+    () => DEPARTMENTS.map((d) => ({ value: d.code, label: d.name })),
+    []
+  );
+  const instructorItems = useMemo(
+    () => INSTRUCTORS.map((name) => ({ value: name, label: name })),
+    []
+  );
+
+  // Only show the sub-track picker when exactly one selected department has tracks.
+  const singleSelectedDept =
+    depts.length === 1 ? DEPARTMENTS.find((d) => d.code === depts[0]) : undefined;
+
+  const numericProps = {
+    inputMode: "numeric" as const,
+    pattern: "[0-9]*",
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+    },
+  };
+
+  const canClear = useMemo(
+    () =>
+      depts.length > 0 ||
+      subCode ||
+      title ||
+      instructors.length > 0 ||
+      courseMin ||
+      courseMax ||
+      creditMin ||
+      creditMax ||
+      openOnly,
+    [depts, subCode, title, instructors, courseMin, courseMax, creditMin, creditMax, openOnly]
+  );
+
+  function clearAll() {
+    setDepts([]);
+    setSubCode("");
+    setTitle("");
+    setInstructors([]);
+    setCourseMin("");
+    setCourseMax("");
+    setCreditMin("");
+    setCreditMax("");
+    setOpenOnly(false);
+  }
+
+  function handleSearch() {
+    const params = new URLSearchParams();
+    if (depts.length) params.set("dept", depts.join(","));
+    if (subCode) params.set("subCode", subCode);
+    if (title) params.set("title", title);
+    if (instructors.length) params.set("instructor", instructors.join("|"));
+    if (courseMin) params.set("courseMin", courseMin);
+    if (courseMax) params.set("courseMax", courseMax);
+    if (creditMin) params.set("creditMin", creditMin);
+    if (creditMax) params.set("creditMax", creditMax);
+    if (openOnly) params.set("openOnly", "1");
+    router.push(`/results?${params.toString()}`);
+  }
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
-      <div className="mb-10">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted mb-2">
-          Registration
-        </p>
-        <h1 className="font-display text-4xl md:text-5xl text-ink leading-tight">
-          What would you like to do?
-        </h1>
-      </div>
+    <div className="max-w-3xl mx-auto px-6 py-12">
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted mb-2">
+        {term.label}
+      </p>
+      <h1 className="font-display text-3xl md:text-4xl text-ink mb-8">
+        Find your classes
+      </h1>
 
-      <Link
-        href="/search"
-        className="group block rounded-2xl border border-line bg-card p-8 md:p-10 mb-6 hover:border-gold/50 hover:shadow-[0_8px_30px_-12px_rgba(22,35,63,0.15)] transition-all"
-      >
-        <div className="flex items-start justify-between gap-6">
-          <div className="max-w-xl">
-            <span className="inline-block font-mono text-[11px] uppercase tracking-widest text-gold bg-gold-soft rounded-full px-3 py-1 mb-4">
-              Start here
-            </span>
-            <h2 className="font-display text-2xl md:text-3xl text-ink mb-2">
-              Find &amp; Register for Classes
-            </h2>
-            <p className="text-ink-soft leading-relaxed">
-              Search the course list, check seat availability, and build your schedule
-              for the term — all in one place.
-            </p>
-          </div>
-          <div className="shrink-0 w-12 h-12 rounded-full bg-ink text-paper flex items-center justify-center group-hover:bg-gold transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        </div>
-      </Link>
+      <div className="rounded-2xl border border-line bg-card p-6 md:p-8 space-y-6">
+        <Field label="Departments or Programs" hint="Select one or more">
+          <MultiSelectCombobox
+            items={deptItems}
+            selected={depts}
+            onChange={(v) => {
+              setDepts(v);
+              setSubCode("");
+            }}
+            placeholder="Any department"
+            searchPlaceholder="Search departments…"
+          />
+        </Field>
 
-      <div className="grid sm:grid-cols-3 gap-4">
-        {secondaryCards.map((card) => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="group rounded-xl border border-line bg-card p-6 hover:border-gold/40 hover:bg-gold-soft/30 transition-colors"
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              className="text-ink-soft mb-4"
+        {singleSelectedDept?.subCodes && (
+          <Field label={`Specific ${singleSelectedDept.name} track`} hint="Optional — narrows within this department">
+            <select
+              value={subCode}
+              onChange={(e) => setSubCode(e.target.value)}
+              className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink outline-none focus-visible:outline-2 focus-visible:outline-gold"
             >
-              {card.icon}
-            </svg>
-            <h3 className="font-semibold text-ink mb-1.5">{card.title}</h3>
-            <p className="text-sm text-ink-soft leading-relaxed">{card.body}</p>
-          </Link>
-        ))}
+              <option value="">Any track</option>
+              {singleSelectedDept.subCodes.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+
+        <Field label="Course title">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Organic Chemistry"
+            className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+          />
+        </Field>
+
+        <Field label="Professors" hint="Select one or more">
+          <MultiSelectCombobox
+            items={instructorItems}
+            selected={instructors}
+            onChange={setInstructors}
+            placeholder="Any professor"
+            searchPlaceholder="Search professors…"
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Course number" hint="e.g. 100 or a range">
+            <div className="flex items-center gap-2">
+              <input
+                {...numericProps}
+                value={courseMin}
+                onChange={(e) => setCourseMin(e.target.value)}
+                placeholder="100"
+                maxLength={3}
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+              />
+              <span className="text-muted text-sm">–</span>
+              <input
+                {...numericProps}
+                value={courseMax}
+                onChange={(e) => setCourseMax(e.target.value)}
+                placeholder="299"
+                maxLength={3}
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+              />
+            </div>
+          </Field>
+
+          <Field label="Credit hours">
+            <div className="flex items-center gap-2">
+              <input
+                {...numericProps}
+                value={creditMin}
+                onChange={(e) => setCreditMin(e.target.value)}
+                placeholder="1"
+                maxLength={2}
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+              />
+              <span className="text-muted text-sm">–</span>
+              <input
+                {...numericProps}
+                value={creditMax}
+                onChange={(e) => setCreditMax(e.target.value)}
+                placeholder="4"
+                maxLength={2}
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+              />
+            </div>
+          </Field>
+        </div>
+
+        <label className="flex items-center justify-between rounded-lg bg-paper border border-line px-4 py-3 cursor-pointer">
+          <div>
+            <p className="text-sm font-medium text-ink">Available seats only</p>
+            <p className="text-xs text-muted">Hide sections that are already full</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={openOnly}
+            onClick={() => setOpenOnly((o) => !o)}
+            className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${
+              openOnly ? "bg-open" : "bg-line"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                openOnly ? "translate-x-4" : ""
+              }`}
+            />
+          </button>
+        </label>
+
+        <div className="flex items-center gap-4 pt-2">
+          <button
+            onClick={handleSearch}
+            className="rounded-full bg-ink text-paper px-6 py-2.5 text-sm font-medium hover:bg-ink-soft transition-colors"
+          >
+            Search classes
+          </button>
+          {canClear && (
+            <button
+              onClick={clearAll}
+              className="text-sm text-muted hover:text-ink transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <label className="text-sm font-medium text-ink">{label}</label>
+        {hint && <span className="text-xs text-muted">{hint}</span>}
+      </div>
+      {children}
     </div>
   );
 }
