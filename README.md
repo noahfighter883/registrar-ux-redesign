@@ -1,6 +1,6 @@
 # Registrar — Course Registration UX Redesign
 
-A functional prototype rebuilding a college course registration portal's core "find and register for classes" flow, based on a UX case study auditing an existing Ellucian/Banner-style system.
+A functional prototype rebuilding a college course registration portal's core "find and register for classes" flow, based on a UX case study auditing an existing Ellucian/Banner-style system. **[Read the full case study →]([./CASE_STUDY.md](https://docs.google.com/document/d/1JOj_ZjTxVr-80OZewXi0UGWPBMbZaEOyF-W_7YbGBxQ/edit?usp=sharing))**
 
 ## What this is
 
@@ -17,12 +17,17 @@ The redesign addresses pain points identified in a heuristic evaluation: excessi
 - Next.js 15 (App Router) + TypeScript
 - Tailwind CSS v4
 - Mock course dataset (deterministic, generated client-side — no backend)
+  
+## Project structure
 
-## Getting started
-
-```bash
-npm install
-npm run dev
+```
+src/
+  app/
+    page.tsx          → Dashboard
+    search/page.tsx    → Find Classes (search form)
+    results/page.tsx   → Browse Classes (results table)
+  components/          → Shared UI (multi-select combobox, header, status badges)
+  lib/                  → Mock data, types, department/term config
 ```
 
 ## Deployment
