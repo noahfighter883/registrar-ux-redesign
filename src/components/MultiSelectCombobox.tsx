@@ -127,15 +127,13 @@ export default function MultiSelectCombobox({
             )}
           </div>
           {selected.length > 0 && (
-            <div className="border-t border-line px-3.5 py-2">
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                className="text-xs text-muted hover:text-ink transition-colors"
-              >
-                Clear all ({selected.length})
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="w-full text-left border-t border-line px-3.5 py-2.5 text-xs text-muted hover:text-ink hover:bg-paper transition-colors"
+            >
+              Clear all ({selected.length})
+            </button>
           )}
         </div>
       )}
