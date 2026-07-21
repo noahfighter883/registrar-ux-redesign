@@ -34,6 +34,8 @@ function ResultsInner() {
     searchParams.get("openOnly") === "1"
   );
   const [added, setAdded] = useState<Set<string>>(new Set());
+  const [sortKey, setSortKey] = useState<"course" | "credits" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const filtered = useMemo(() => {
     const depts = (searchParams.get("dept") || "").split(",").filter(Boolean);
@@ -55,8 +57,29 @@ function ResultsInner() {
     });
   }, [searchParams, openOnlyOverride]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (sortKey === "credits") return (a.credits - b.credits) * dir;
+      const subjCompare = a.subject.localeCompare(b.subject);
+      if (subjCompare !== 0) return subjCompare * dir;
+      return (a.courseNumber - b.courseNumber) * dir;
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function toggleSort(key: "course" | "credits") {
+    setPage(1);
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   function toggleAdd(crn: string) {
     setAdded((prev) => {
@@ -114,11 +137,15 @@ function ResultsInner() {
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="bg-paper border-b border-line shadow-[0_1px_0_0_var(--line)]">
-                <Th>Course</Th>
+                <Th sortDir={sortKey === "course" ? sortDir : undefined} onClick={() => toggleSort("course")}>
+                  Course
+                </Th>
                 <Th>Title</Th>
                 <Th>Instructor</Th>
                 <Th>Meeting Times</Th>
-                <Th>Credits</Th>
+                <Th sortDir={sortKey === "credits" ? sortDir : undefined} onClick={() => toggleSort("credits")}>
+                  Credits
+                </Th>
                 <Th>Status</Th>
                 <Th />
               </tr>
@@ -203,10 +230,44 @@ function ResultsInner() {
   );
 }
 
-function Th({ children }: { children?: React.ReactNode }) {
+function Th({
+  children,
+  onClick,
+  sortDir,
+}: {
+  children?: React.ReactNode;
+  onClick?: () => void;
+  sortDir?: "asc" | "desc";
+}) {
+  if (!onClick) {
+    return (
+      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted whitespace-nowrap">
+        {children}
+      </th>
+    );
+  }
+
   return (
-    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted whitespace-nowrap">
-      {children}
+    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex items-center gap-1 transition-colors ${
+          sortDir ? "text-ink" : "text-muted hover:text-ink"
+        }`}
+      >
+        {children}
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          className={`transition-transform ${
+            sortDir === "desc" ? "rotate-180" : ""
+          } ${sortDir ? "opacity-100" : "opacity-30"}`}
+        >
+          <path d="M5 2v6M2 5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </th>
   );
 }
