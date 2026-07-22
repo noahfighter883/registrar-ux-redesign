@@ -41,7 +41,7 @@ export default function SiteHeader() {
         <nav className="hidden md:flex items-center gap-6 flex-1">
           {navItem("/", "Dashboard")}
           {navItem("/search", "Find Classes")}
-          {navItem("/results", "My Schedule")}
+          {navItem("/schedule", "My Schedule")}
         </nav>
 
         <div className="relative" ref={ref}>

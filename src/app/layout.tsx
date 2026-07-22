@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
+import { TermProvider } from "@/lib/useTerm";
+import { ScheduleProvider } from "@/lib/useSchedule";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -37,8 +39,12 @@ export default function RootLayout({
       className={`${fraunces.variable} ${inter.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
+        <TermProvider>
+          <ScheduleProvider>
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+          </ScheduleProvider>
+        </TermProvider>
       </body>
     </html>
   );

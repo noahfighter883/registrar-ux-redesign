@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ALL_COURSES } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
+import { useSchedule } from "@/lib/useSchedule";
 import StatusBadge from "@/components/StatusBadge";
 import { Course } from "@/lib/types";
 
@@ -29,11 +30,11 @@ function ResultsInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { term } = useTerm();
+  const { isAdded, addCourse, removeCourse } = useSchedule();
   const [page, setPage] = useState(1);
   const [openOnlyOverride, setOpenOnlyOverride] = useState(
     searchParams.get("openOnly") === "1"
   );
-  const [added, setAdded] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<"course" | "credits" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -82,12 +83,8 @@ function ResultsInner() {
   }
 
   function toggleAdd(crn: string) {
-    setAdded((prev) => {
-      const next = new Set(prev);
-      if (next.has(crn)) next.delete(crn);
-      else next.add(crn);
-      return next;
-    });
+    if (isAdded(crn)) removeCourse(crn);
+    else addCourse(crn);
   }
 
   return (
@@ -177,16 +174,16 @@ function ResultsInner() {
                   <td className="px-4 py-4">
                     <button
                       onClick={() => toggleAdd(c.crn)}
-                      disabled={c.seatsTaken >= c.seatsTotal && !added.has(c.crn)}
+                      disabled={c.seatsTaken >= c.seatsTotal && !isAdded(c.crn)}
                       className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
-                        added.has(c.crn)
+                        isAdded(c.crn)
                           ? "bg-open text-white"
                           : c.seatsTaken >= c.seatsTotal
                           ? "bg-line text-muted cursor-not-allowed"
                           : "bg-ink text-paper hover:bg-gold"
                       }`}
                     >
-                      {added.has(c.crn) ? "Added ✓" : "Add to Schedule"}
+                      {isAdded(c.crn) ? "Added ✓" : "Add to Schedule"}
                     </button>
                   </td>
                 </tr>
