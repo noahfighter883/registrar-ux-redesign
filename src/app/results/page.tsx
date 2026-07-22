@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ALL_COURSES } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
@@ -172,19 +173,34 @@ function ResultsInner() {
                     <StatusBadge course={c} />
                   </td>
                   <td className="px-4 py-4">
-                    <button
-                      onClick={() => toggleAdd(c.crn)}
-                      disabled={c.seatsTaken >= c.seatsTotal && !isAdded(c.crn)}
-                      className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
-                        isAdded(c.crn)
-                          ? "bg-open text-white"
-                          : c.seatsTaken >= c.seatsTotal
-                          ? "bg-line text-muted cursor-not-allowed"
-                          : "bg-ink text-paper hover:bg-gold"
-                      }`}
-                    >
-                      {isAdded(c.crn) ? "Added ✓" : "Add to Schedule"}
-                    </button>
+                    {isAdded(c.crn) ? (
+                      <div className="flex flex-col items-stretch gap-1.5 w-36">
+                        <Link
+                          href="/schedule"
+                          className="rounded-full bg-open text-white px-4 py-2 text-xs font-semibold text-center hover:bg-open/90 transition-colors"
+                        >
+                          View My Schedule
+                        </Link>
+                        <button
+                          onClick={() => toggleAdd(c.crn)}
+                          className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-center leading-tight text-ink-soft hover:border-full/40 hover:text-full transition-colors"
+                        >
+                          Remove from My Schedule
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => toggleAdd(c.crn)}
+                        disabled={c.seatsTaken >= c.seatsTotal}
+                        className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
+                          c.seatsTaken >= c.seatsTotal
+                            ? "bg-line text-muted cursor-not-allowed"
+                            : "bg-ink text-paper hover:bg-gold"
+                        }`}
+                      >
+                        Add to Schedule
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
