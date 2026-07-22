@@ -37,7 +37,7 @@ export default function DashboardPage() {
 
       <Link
         href="/search"
-        className="group block rounded-2xl border border-line bg-card p-8 md:p-10 mb-6 hover:border-gold/50 hover:shadow-[0_8px_30px_-12px_rgba(22,35,63,0.15)] transition-all"
+        className="group block rounded-2xl border border-line bg-card p-8 md:p-10 mb-6 hover:border-gold/50 hover:shadow-[0_8px_30px_-12px_rgba(22,35,63,0.15)] hover:-translate-y-0.5 transition-all"
       >
         <div className="flex items-start justify-between gap-6">
           <div className="max-w-xl">
@@ -65,7 +65,7 @@ export default function DashboardPage() {
           <Link
             key={card.href}
             href={card.href}
-            className="group rounded-xl border border-line bg-card p-6 hover:border-gold/40 hover:bg-gold-soft/30 transition-colors"
+            className="group rounded-xl border border-line bg-card p-6 hover:border-gold/40 hover:bg-gold-soft/30 hover:-translate-y-0.5 transition-all"
           >
             <svg
               width="22"

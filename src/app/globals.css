@@ -6,14 +6,16 @@
   --ink: #16233f;
   --ink-soft: #4a5372;
   --line: #e3e0d8;
-  --muted: #8a8a80;
-  --gold: #b8862b;
+  /* Darkened from the original design pass to clear WCAG AA (4.5:1) at
+     the small sizes these run at — muted/gold/wait were 3.31/2.69/4.08. */
+  --muted: #726f65;
+  --gold: #825d1c;
   --gold-soft: #f4e9d4;
   --open: #2f6846;
   --open-soft: #e6f0e9;
   --full: #a92f26;
   --full-soft: #fbe9e6;
-  --wait: #a06a12;
+  --wait: #955f0f;
   --wait-soft: #fbf0dd;
 }
 
@@ -51,4 +53,45 @@ body {
 :focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-fade-in 0.22s ease-out both;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.menu-enter {
+  animation: menu-in 0.14s ease-out both;
+  transform-origin: top;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .menu-enter {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }
