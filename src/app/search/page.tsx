@@ -1,25 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DEPARTMENTS } from "@/lib/departments";
 import { INSTRUCTORS } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
+import { useSearchFilters } from "@/lib/useSearchFilters";
 import MultiSelectCombobox from "@/components/MultiSelectCombobox";
 
 export default function SearchPage() {
   const router = useRouter();
   const { term } = useTerm();
-
-  const [depts, setDepts] = useState<string[]>([]);
-  const [subCode, setSubCode] = useState("");
-  const [title, setTitle] = useState("");
-  const [instructors, setInstructors] = useState<string[]>([]);
-  const [courseMin, setCourseMin] = useState("");
-  const [courseMax, setCourseMax] = useState("");
-  const [creditMin, setCreditMin] = useState("");
-  const [creditMax, setCreditMax] = useState("");
-  const [openOnly, setOpenOnly] = useState(false);
+  const { filters, setFilters, clearFilters } = useSearchFilters();
+  const { depts, subCode, title, instructors, courseMin, courseMax, creditMin, creditMax, openOnly } = filters;
 
   const deptItems = useMemo(
     () => DEPARTMENTS.map((d) => ({ value: d.code, label: d.name })),
@@ -43,31 +36,16 @@ export default function SearchPage() {
     },
   };
 
-  const canClear = useMemo(
-    () =>
-      depts.length > 0 ||
-      subCode ||
-      title ||
-      instructors.length > 0 ||
-      courseMin ||
-      courseMax ||
-      creditMin ||
-      creditMax ||
-      openOnly,
-    [depts, subCode, title, instructors, courseMin, courseMax, creditMin, creditMax, openOnly]
-  );
-
-  function clearAll() {
-    setDepts([]);
-    setSubCode("");
-    setTitle("");
-    setInstructors([]);
-    setCourseMin("");
-    setCourseMax("");
-    setCreditMin("");
-    setCreditMax("");
-    setOpenOnly(false);
-  }
+  const canClear =
+    depts.length > 0 ||
+    subCode ||
+    title ||
+    instructors.length > 0 ||
+    courseMin ||
+    courseMax ||
+    creditMin ||
+    creditMax ||
+    openOnly;
 
   function handleSearch() {
     const params = new URLSearchParams();
@@ -97,10 +75,7 @@ export default function SearchPage() {
           <MultiSelectCombobox
             items={deptItems}
             selected={depts}
-            onChange={(v) => {
-              setDepts(v);
-              setSubCode("");
-            }}
+            onChange={(v) => setFilters({ depts: v, subCode: "" })}
             placeholder="Any department"
             searchPlaceholder="Search departments…"
           />
@@ -110,7 +85,7 @@ export default function SearchPage() {
           <Field label={`Specific ${singleSelectedDept.name} track`} hint="Optional — narrows within this department">
             <select
               value={subCode}
-              onChange={(e) => setSubCode(e.target.value)}
+              onChange={(e) => setFilters({ subCode: e.target.value })}
               className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink outline-none focus-visible:outline-2 focus-visible:outline-gold"
             >
               <option value="">Any track</option>
@@ -126,7 +101,7 @@ export default function SearchPage() {
         <Field label="Course title">
           <input
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => setFilters({ title: e.target.value })}
             placeholder="e.g. Organic Chemistry"
             className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
           />
@@ -136,7 +111,7 @@ export default function SearchPage() {
           <MultiSelectCombobox
             items={instructorItems}
             selected={instructors}
-            onChange={setInstructors}
+            onChange={(v) => setFilters({ instructors: v })}
             placeholder="Any professor"
             searchPlaceholder="Search professors…"
           />
@@ -148,7 +123,7 @@ export default function SearchPage() {
               <input
                 {...numericProps}
                 value={courseMin}
-                onChange={(e) => setCourseMin(e.target.value)}
+                onChange={(e) => setFilters({ courseMin: e.target.value })}
                 placeholder="100"
                 maxLength={3}
                 className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
@@ -157,7 +132,7 @@ export default function SearchPage() {
               <input
                 {...numericProps}
                 value={courseMax}
-                onChange={(e) => setCourseMax(e.target.value)}
+                onChange={(e) => setFilters({ courseMax: e.target.value })}
                 placeholder="299"
                 maxLength={3}
                 className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
@@ -170,7 +145,7 @@ export default function SearchPage() {
               <input
                 {...numericProps}
                 value={creditMin}
-                onChange={(e) => setCreditMin(e.target.value)}
+                onChange={(e) => setFilters({ creditMin: e.target.value })}
                 placeholder="1"
                 maxLength={2}
                 className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
@@ -179,7 +154,7 @@ export default function SearchPage() {
               <input
                 {...numericProps}
                 value={creditMax}
-                onChange={(e) => setCreditMax(e.target.value)}
+                onChange={(e) => setFilters({ creditMax: e.target.value })}
                 placeholder="4"
                 maxLength={2}
                 className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
@@ -197,7 +172,7 @@ export default function SearchPage() {
             type="button"
             role="switch"
             aria-checked={openOnly}
-            onClick={() => setOpenOnly((o) => !o)}
+            onClick={() => setFilters({ openOnly: !openOnly })}
             className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${
               openOnly ? "bg-open" : "bg-line"
             }`}
@@ -219,7 +194,7 @@ export default function SearchPage() {
           </button>
           {canClear && (
             <button
-              onClick={clearAll}
+              onClick={clearFilters}
               className="text-sm text-muted hover:text-ink transition-colors"
             >
               Clear filters

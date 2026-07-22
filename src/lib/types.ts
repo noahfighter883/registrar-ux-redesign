@@ -28,3 +28,10 @@ export type Term = {
   label: string;
   isCurrent?: boolean;
 };
+
+// Your own "Add to Schedule" hold occupies a seat, so the count shown to
+// you should reflect that even though the underlying mock data doesn't change.
+export function withReservedSeat(course: Course, reserved: boolean): Course {
+  if (!reserved || course.seatsTaken >= course.seatsTotal) return course;
+  return { ...course, seatsTaken: course.seatsTaken + 1 };
+}

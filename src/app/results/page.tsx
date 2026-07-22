@@ -7,7 +7,7 @@ import { ALL_COURSES } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
 import { useSchedule } from "@/lib/useSchedule";
 import StatusBadge from "@/components/StatusBadge";
-import { Course } from "@/lib/types";
+import { Course, withReservedSeat } from "@/lib/types";
 
 const PAGE_SIZE = 15;
 
@@ -170,7 +170,7 @@ function ResultsInner() {
                     <p className="text-sm text-ink-soft">{c.credits}</p>
                   </td>
                   <td className="px-4 py-4">
-                    <StatusBadge course={c} />
+                    <StatusBadge course={withReservedSeat(c, isAdded(c.crn))} />
                   </td>
                   <td className="px-4 py-4">
                     {isAdded(c.crn) ? (
