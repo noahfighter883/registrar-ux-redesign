@@ -37,10 +37,8 @@ function courseCode(c: Course) {
   return `${c.subject} ${c.courseNumber}${c.suffix ?? ""}`;
 }
 
-function formatDayTime(c: Course) {
-  return c.meetings
-    .map((m) => `${m.days.map((d) => DAY_LABELS[d]).join("/")} ${m.start}–${m.end}`)
-    .join("; ");
+function formatDayTimeLines(c: Course) {
+  return c.meetings.map((m) => `${m.days.map((d) => DAY_LABELS[d]).join("/")} ${m.start}–${m.end}`);
 }
 
 function parseMinutes(time: string) {
@@ -192,7 +190,7 @@ export default function SchedulePage() {
               {totalCredits} {totalCredits === 1 ? "credit" : "credits"}
             </p>
             <Link
-              href="/search"
+              href="/results"
               className="rounded-full border border-line px-4 py-2 text-sm font-medium text-ink hover:border-ink-soft/40 transition-colors"
             >
               Find more classes
@@ -269,7 +267,11 @@ export default function SchedulePage() {
                           <p className="text-sm text-ink font-medium max-w-[220px]">{c.title}</p>
                         </td>
                         <td className="px-4 py-4">
-                          <p className="text-sm text-ink-soft whitespace-nowrap">{formatDayTime(c)}</p>
+                          <div className="text-sm text-ink-soft max-w-[190px] space-y-0.5">
+                            {formatDayTimeLines(c).map((line, i) => (
+                              <p key={i}>{line}</p>
+                            ))}
+                          </div>
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-col items-start gap-1.5">
