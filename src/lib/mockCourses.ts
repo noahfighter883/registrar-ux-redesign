@@ -39,34 +39,87 @@ function seededRandom(seed: number) {
   };
 }
 
-function buildMeeting(rand: () => number): MeetingTime {
-  const patterns: MeetingTime["days"][] = [
-    ["M", "W"],
-    ["T", "Th"],
-    ["M", "W", "F"],
-    ["T"],
-    ["W"],
-  ];
+type RawMeeting = {
+  days: MeetingTime["days"];
+  totalStart: number;
+  totalEnd: number;
+  building: string;
+  room: string;
+};
+
+const DAY_PATTERNS: MeetingTime["days"][] = [
+  ["M", "W"],
+  ["T", "Th"],
+  ["M", "W", "F"],
+  ["T"],
+  ["W"],
+];
+
+function buildRawMeeting(rand: () => number): RawMeeting {
   const startHour = 8 + Math.floor(rand() * 9);
   const startMin = rand() > 0.5 ? "00" : "30";
   const durationMin = 50 + Math.floor(rand() * 3) * 25;
   const totalStart = startHour * 60 + (startMin === "30" ? 30 : 0);
   const totalEnd = totalStart + durationMin;
-  const fmt = (mins: number) => {
-    let h = Math.floor(mins / 60);
-    const m = mins % 60;
-    const ampm = h >= 12 ? "PM" : "AM";
-    if (h > 12) h -= 12;
-    if (h === 0) h = 12;
-    return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
-  };
   return {
-    days: patterns[Math.floor(rand() * patterns.length)],
-    start: fmt(totalStart),
-    end: fmt(totalEnd),
+    days: DAY_PATTERNS[Math.floor(rand() * DAY_PATTERNS.length)],
+    totalStart,
+    totalEnd,
     building: BUILDINGS[Math.floor(rand() * BUILDINGS.length)],
     room: `${100 + Math.floor(rand() * 300)}`,
   };
+}
+
+function rawMeetingsOverlap(a: RawMeeting, b: RawMeeting) {
+  const sharesDay = a.days.some((d) => b.days.includes(d));
+  if (!sharesDay) return false;
+  return a.totalStart < b.totalEnd && b.totalStart < a.totalEnd;
+}
+
+function formatTime(mins: number) {
+  let h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h >= 12 ? "PM" : "AM";
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
+function toMeetingTime(raw: RawMeeting): MeetingTime {
+  return {
+    days: raw.days,
+    start: formatTime(raw.totalStart),
+    end: formatTime(raw.totalEnd),
+    building: raw.building,
+    room: raw.room,
+  };
+}
+
+// A course's own meetings (e.g. lecture + lab) must never overlap each
+// other, so retry until they don't — falling back to a strictly
+// sequential slot on the last meeting's days if we somehow don't find a
+// non-conflicting draw in time.
+function buildMeetings(rand: () => number, count: number): MeetingTime[] {
+  const raws: RawMeeting[] = [];
+  for (let i = 0; i < count; i++) {
+    let candidate = buildRawMeeting(rand);
+    let attempts = 0;
+    while (raws.some((m) => rawMeetingsOverlap(m, candidate)) && attempts < 25) {
+      candidate = buildRawMeeting(rand);
+      attempts++;
+    }
+    if (raws.some((m) => rawMeetingsOverlap(m, candidate))) {
+      const prev = raws[raws.length - 1];
+      candidate = {
+        ...candidate,
+        days: prev.days,
+        totalStart: prev.totalEnd + 15,
+        totalEnd: prev.totalEnd + 15 + 65,
+      };
+    }
+    raws.push(candidate);
+  }
+  return raws.map(toMeetingTime);
 }
 
 function generateCourses(): Course[] {
@@ -88,7 +141,7 @@ function generateCourses(): Course[] {
         const waitlistTotal = isFull ? [3, 5, 8][Math.floor(rand() * 3)] : 0;
         const waitlistTaken = isFull ? Math.floor(rand() * waitlistTotal) : 0;
         const meetingCount = rand() > 0.6 ? 2 : 1;
-        const meetings = Array.from({ length: meetingCount }, () => buildMeeting(rand));
+        const meetings = buildMeetings(rand, meetingCount);
 
         crnCounter += 7;
         courses.push({

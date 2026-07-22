@@ -67,7 +67,7 @@ function formatHourLabel(mins: number) {
 
 type CalendarBlock = {
   key: string;
-  day: MeetingDay;
+  crn: string;
   top: number;
   height: number;
   code: string;
@@ -75,6 +75,49 @@ type CalendarBlock = {
   timeLabel: string;
   color: (typeof COURSE_COLORS)[number];
 };
+
+type LaidOutBlock = CalendarBlock & {
+  columns: number;
+  colIndex: number;
+  conflict: boolean;
+};
+
+// Standard calendar collision layout: sweep blocks in start order, packing
+// each into the first column whose previous block has already ended.
+// Overlapping blocks share a "cluster" and split that cluster's width evenly.
+function layoutBlocks(blocks: CalendarBlock[]): LaidOutBlock[] {
+  const sorted = [...blocks].sort((a, b) => a.top - b.top);
+  const results: LaidOutBlock[] = [];
+  let cluster: { block: CalendarBlock; col: number }[] = [];
+  let colEnds: number[] = [];
+
+  function flush() {
+    if (!cluster.length) return;
+    const columns = Math.max(...cluster.map((c) => c.col)) + 1;
+    cluster.forEach(({ block, col }) => {
+      results.push({ ...block, columns, colIndex: col, conflict: columns > 1 });
+    });
+    cluster = [];
+    colEnds = [];
+  }
+
+  sorted.forEach((block) => {
+    const clusterActive = colEnds.some((end) => end > block.top);
+    if (!clusterActive && cluster.length > 0) flush();
+
+    let colIndex = colEnds.findIndex((end) => end <= block.top);
+    if (colIndex === -1) {
+      colIndex = colEnds.length;
+      colEnds.push(block.top + block.height);
+    } else {
+      colEnds[colIndex] = block.top + block.height;
+    }
+    cluster.push({ block, col: colIndex });
+  });
+  flush();
+
+  return results;
+}
 
 export default function SchedulePage() {
   const { term } = useTerm();
@@ -90,19 +133,19 @@ export default function SchedulePage() {
 
   const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
 
-  const blocksByDay = useMemo(() => {
-    const map = new Map<MeetingDay, CalendarBlock[]>(CALENDAR_DAYS.map((d) => [d, []]));
+  const { blocksByDay, conflictCrns } = useMemo(() => {
+    const rawByDay = new Map<MeetingDay, CalendarBlock[]>(CALENDAR_DAYS.map((d) => [d, []]));
     courses.forEach((course, i) => {
       const color = COURSE_COLORS[i % COURSE_COLORS.length];
       course.meetings.forEach((m, mi) => {
         const start = parseMinutes(m.start);
         const end = parseMinutes(m.end);
         m.days.forEach((day) => {
-          const bucket = map.get(day as MeetingDay);
+          const bucket = rawByDay.get(day as MeetingDay);
           if (!bucket) return;
           bucket.push({
             key: `${course.crn}-${mi}-${day}`,
-            day: day as MeetingDay,
+            crn: course.crn,
             top: (start - GRID_START) * PX_PER_MIN,
             height: (end - start) * PX_PER_MIN,
             code: courseCode(course),
@@ -113,7 +156,18 @@ export default function SchedulePage() {
         });
       });
     });
-    return map;
+
+    const laidOutByDay = new Map<MeetingDay, LaidOutBlock[]>();
+    const conflicts = new Set<string>();
+    rawByDay.forEach((blocks, day) => {
+      const laidOut = layoutBlocks(blocks);
+      laidOut.forEach((b) => {
+        if (b.conflict) conflicts.add(b.crn);
+      });
+      laidOutByDay.set(day, laidOut);
+    });
+
+    return { blocksByDay: laidOutByDay, conflictCrns: conflicts };
   }, [courses]);
 
   const hourMarks = useMemo(() => {
@@ -161,6 +215,15 @@ export default function SchedulePage() {
         </div>
       ) : (
         <>
+          {conflictCrns.size > 0 && (
+            <div className="flex items-center gap-2 rounded-xl bg-wait-soft border border-wait/20 text-wait text-sm font-medium px-4 py-3 mb-6">
+              <span aria-hidden>⚠</span>
+              {conflictCrns.size === 1
+                ? "1 class has a time conflict with another class in your schedule."
+                : `${conflictCrns.size} classes have time conflicts with another class in your schedule.`}
+            </div>
+          )}
+
           <div className="rounded-2xl border border-line bg-card overflow-hidden">
             <div className="overflow-auto">
               <table className="w-full text-left border-collapse">
@@ -179,6 +242,7 @@ export default function SchedulePage() {
                 <tbody>
                   {courses.map((c, i) => {
                     const color = COURSE_COLORS[i % COURSE_COLORS.length];
+                    const hasConflict = conflictCrns.has(c.crn);
                     return (
                       <tr key={c.crn} className="border-b border-line last:border-0 hover:bg-paper/60 align-top">
                         <td className="px-4 py-4">
@@ -208,25 +272,24 @@ export default function SchedulePage() {
                           <p className="text-sm text-ink-soft whitespace-nowrap">{formatDayTime(c)}</p>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="inline-flex items-center rounded-full bg-open-soft text-open text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
-                            Enrolled
-                          </span>
+                          <div className="flex flex-col items-start gap-1.5">
+                            <span className="inline-flex items-center rounded-full bg-open-soft text-open text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                              Enrolled
+                            </span>
+                            {hasConflict && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-wait-soft text-wait text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                                <span aria-hidden>⚠</span> Time Conflict
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-4">
-                          <div className="flex items-center gap-3 whitespace-nowrap">
-                            <Link
-                              href="/search"
-                              className="text-xs font-semibold text-gold hover:underline"
-                            >
-                              Swap
-                            </Link>
-                            <button
-                              onClick={() => removeCourse(c.crn)}
-                              className="text-xs font-semibold text-full hover:underline"
-                            >
-                              Drop
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => removeCourse(c.crn)}
+                            className="rounded-full border border-line px-4 py-2 text-xs font-semibold whitespace-nowrap text-ink-soft hover:border-full/40 hover:text-full transition-colors"
+                          >
+                            Drop
+                          </button>
                         </td>
                       </tr>
                     );
@@ -280,15 +343,24 @@ export default function SchedulePage() {
                       {blocksByDay.get(day)?.map((block) => (
                         <div
                           key={block.key}
-                          className="absolute left-1 right-1 rounded-lg px-2 py-1 overflow-hidden"
+                          className="absolute rounded-lg px-2 py-1 overflow-hidden"
                           style={{
                             top: block.top,
                             height: Math.max(block.height, 24),
+                            left: `calc(${(block.colIndex / block.columns) * 100}% + 2px)`,
+                            width: `calc(${100 / block.columns}% - 4px)`,
                             background: block.color.bg,
-                            border: `1px solid ${block.color.border}`,
+                            border: block.conflict
+                              ? "1.5px dashed var(--wait)"
+                              : `1px solid ${block.color.border}`,
                             color: block.color.text,
                           }}
                         >
+                          {block.conflict && (
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-wait leading-tight">
+                              ⚠ Conflict
+                            </p>
+                          )}
                           <p className="text-[11px] font-semibold leading-tight truncate">
                             {block.code} ({block.section})
                           </p>
