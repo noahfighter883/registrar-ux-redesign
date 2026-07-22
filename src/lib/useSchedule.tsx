@@ -1,8 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, ReactNode } from "react";
+import { useTerm } from "./useTerm";
 
 const STORAGE_KEY = "registrar.schedule";
+
+// Keyed by term id, so each term keeps its own set of added courses.
+type ScheduleStore = Record<string, string[]>;
 
 const listeners = new Set<() => void>();
 
@@ -11,41 +15,44 @@ function subscribe(callback: () => void) {
   return () => listeners.delete(callback);
 }
 
-function readStored(): string[] {
+function readStored(): ScheduleStore {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const parsed = stored ? JSON.parse(stored) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
-    return [];
+    return {};
   }
 }
 
 // useSyncExternalStore requires a stable snapshot reference; cache the
 // parsed value and only reparse when the underlying storage actually changes.
 let cachedRaw: string | null = null;
-let cachedCrns: string[] = [];
+let cachedStore: ScheduleStore = {};
 
-function getSnapshot(): string[] {
+function getSnapshot(): ScheduleStore {
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (raw !== cachedRaw) {
     cachedRaw = raw;
-    cachedCrns = readStored();
+    cachedStore = readStored();
   }
-  return cachedCrns;
+  return cachedStore;
 }
 
-const EMPTY_CRNS: string[] = [];
+const EMPTY_STORE: ScheduleStore = {};
 
-function getServerSnapshot(): string[] {
-  return EMPTY_CRNS;
+function getServerSnapshot(): ScheduleStore {
+  return EMPTY_STORE;
 }
 
-function persist(next: string[]) {
+function persist(next: ScheduleStore) {
   cachedRaw = JSON.stringify(next);
-  cachedCrns = next;
+  cachedStore = next;
   window.localStorage.setItem(STORAGE_KEY, cachedRaw);
   listeners.forEach((l) => l());
 }
+
+const EMPTY_CRNS: string[] = [];
 
 type ScheduleContextValue = {
   crns: Set<string>;
@@ -57,17 +64,23 @@ type ScheduleContextValue = {
 const ScheduleContext = createContext<ScheduleContextValue | null>(null);
 
 export function ScheduleProvider({ children }: { children: ReactNode }) {
-  const crnList = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { termId } = useTerm();
+  const store = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const crnList = store[termId] ?? EMPTY_CRNS;
   const crns = useMemo(() => new Set(crnList), [crnList]);
 
   const addCourse = useCallback((crn: string) => {
-    if (crns.has(crn)) return;
-    persist([...crnList, crn]);
-  }, [crnList, crns]);
+    const current = getSnapshot();
+    const currentList = current[termId] ?? EMPTY_CRNS;
+    if (currentList.includes(crn)) return;
+    persist({ ...current, [termId]: [...currentList, crn] });
+  }, [termId]);
 
   const removeCourse = useCallback((crn: string) => {
-    persist(crnList.filter((c) => c !== crn));
-  }, [crnList]);
+    const current = getSnapshot();
+    const currentList = current[termId] ?? EMPTY_CRNS;
+    persist({ ...current, [termId]: currentList.filter((c) => c !== crn) });
+  }, [termId]);
 
   const isAdded = useCallback((crn: string) => crns.has(crn), [crns]);
 
