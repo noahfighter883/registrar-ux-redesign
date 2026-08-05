@@ -139,6 +139,24 @@ body {
   animation: chip-pop-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Calendar block detail tooltip. Scale/opacity only — positioning
+   (including the above/below flip) is a separate, static transform on
+   the wrapping element so the two never fight over the same property. */
+@keyframes tooltip-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tooltip-pop {
+  animation: tooltip-pop 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Undo toast: enters like a menu, exits down and out, and its countdown
    bar is the only continuous animation in the app — bounded to the
    toast's own lifetime and cancelled with it. */
@@ -195,7 +213,8 @@ body {
   .chip-pop-in,
   .toast-leave,
   .toast-countdown-bar,
-  .icon-swap-in {
+  .icon-swap-in,
+  .tooltip-pop {
     animation: none;
   }
   * {

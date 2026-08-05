@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ALL_COURSES } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
 import { useSchedule } from "@/lib/useSchedule";
-import { Course } from "@/lib/types";
+import { Course, MeetingTime } from "@/lib/types";
 import { coursesConflict, parseMeetingMinutes } from "@/lib/scheduleConflicts";
 
 const DAY_LABELS: Record<string, string> = {
@@ -72,6 +72,8 @@ type CalendarBlock = {
   section: string;
   timeLabel: string;
   color: (typeof COURSE_COLORS)[number];
+  course: Course;
+  meeting: MeetingTime;
 };
 
 type LaidOutBlock = CalendarBlock & {
@@ -125,6 +127,13 @@ export default function SchedulePage() {
   const [dropId, setDropId] = useState(0);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [blockTooltip, setBlockTooltip] = useState<{
+    block: LaidOutBlock;
+    left: number;
+    top: number;
+    placement: "above" | "below";
+    conflict: boolean;
+  } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -132,6 +141,23 @@ export default function SchedulePage() {
       if (leaveTimer.current) clearTimeout(leaveTimer.current);
     };
   }, []);
+
+  function showBlockTooltip(block: LaidOutBlock, target: HTMLElement) {
+    const rect = target.getBoundingClientRect();
+    const spaceAbove = rect.top;
+    const placement: "above" | "below" = spaceAbove > 180 ? "above" : "below";
+    setBlockTooltip({
+      block,
+      left: Math.min(Math.max(rect.left + rect.width / 2, 132), window.innerWidth - 132),
+      top: placement === "above" ? rect.top - 8 : rect.bottom + 8,
+      placement,
+      conflict: block.conflict,
+    });
+  }
+
+  function hideBlockTooltip() {
+    setBlockTooltip(null);
+  }
 
   function beginToastDismiss() {
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -190,6 +216,8 @@ export default function SchedulePage() {
             section: course.section,
             timeLabel: `${m.start}–${m.end}`,
             color,
+            course,
+            meeting: m,
           });
         });
       });
@@ -474,7 +502,16 @@ export default function SchedulePage() {
                       {blocksByDay.get(day)?.map((block) => (
                         <div
                           key={block.key}
-                          className="absolute rounded-lg px-2 py-1 overflow-hidden"
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`${block.code} section ${block.section}, ${block.course.title}, taught by ${block.course.instructor}, ${block.timeLabel}, ${block.meeting.building} ${block.meeting.room}, ${block.course.credits} credits${
+                            block.conflict ? ", time conflict" : ""
+                          }`}
+                          onMouseEnter={(e) => showBlockTooltip(block, e.currentTarget)}
+                          onMouseLeave={hideBlockTooltip}
+                          onFocus={(e) => showBlockTooltip(block, e.currentTarget)}
+                          onBlur={hideBlockTooltip}
+                          className="absolute rounded-lg px-2 py-1 overflow-hidden cursor-default"
                           style={{
                             top: block.top,
                             height: Math.max(block.height, 24),
@@ -507,6 +544,53 @@ export default function SchedulePage() {
             </div>
           </div>
         </>
+      )}
+
+      {blockTooltip && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{
+            left: blockTooltip.left,
+            top: blockTooltip.top,
+            transform: `translate(-50%, ${blockTooltip.placement === "above" ? "-100%" : "0"})`,
+          }}
+        >
+          <div
+            role="tooltip"
+            className="tooltip-pop w-64 rounded-xl border border-line bg-ink text-paper px-4 py-3 shadow-lg"
+            style={{ transformOrigin: blockTooltip.placement === "above" ? "bottom center" : "top center" }}
+          >
+            <p className="font-mono text-xs uppercase tracking-wide text-paper/60 mb-1">
+              {blockTooltip.block.code} · Sec {blockTooltip.block.section}
+              {blockTooltip.conflict && <span className="text-wait"> · Conflict</span>}
+            </p>
+            <p className="font-display text-base leading-snug mb-2">{blockTooltip.block.course.title}</p>
+            <dl className="space-y-1 text-sm text-paper/85">
+              <div className="flex justify-between gap-4">
+                <dt className="text-paper/55">Instructor</dt>
+                <dd className="text-right">{blockTooltip.block.course.instructor}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-paper/55">Time</dt>
+                <dd className="text-right">{blockTooltip.block.timeLabel}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-paper/55">Location</dt>
+                <dd className="text-right">
+                  {blockTooltip.block.meeting.building} {blockTooltip.block.meeting.room}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-paper/55">Credits</dt>
+                <dd className="text-right">{blockTooltip.block.course.credits}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-paper/55">CRN</dt>
+                <dd className="text-right font-mono">{blockTooltip.block.crn}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
       )}
 
       {lastDropped && (
