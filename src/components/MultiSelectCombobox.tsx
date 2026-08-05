@@ -99,7 +99,7 @@ export default function MultiSelectCombobox({
             {selectedLabels.map((item) => (
               <span
                 key={item.value}
-                className="inline-flex items-center gap-1 rounded-full bg-gold-soft text-ink text-xs font-medium pl-2.5 pr-1.5 py-1"
+                className="chip-pop-in inline-flex items-center gap-1 rounded-full bg-gold-soft text-ink text-xs font-medium pl-2.5 pr-1.5 py-1"
               >
                 {item.label}
                 <span

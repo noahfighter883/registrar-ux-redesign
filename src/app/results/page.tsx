@@ -51,7 +51,7 @@ function AddToScheduleControl({
 }) {
   if (isAdded) {
     return (
-      <div className={`flex flex-col items-stretch gap-1.5 ${compact ? "w-full" : "w-36"}`}>
+      <div className={`control-fade-in flex flex-col items-stretch gap-1.5 ${compact ? "w-full" : "w-36"}`}>
         <Link
           href="/schedule"
           className="rounded-full bg-open text-white px-4 py-2 text-xs font-semibold text-center hover:bg-open/90 transition-colors"
@@ -70,7 +70,7 @@ function AddToScheduleControl({
 
   if (confirming) {
     return (
-      <div className={`flex flex-col gap-1.5 rounded-lg border border-wait/30 bg-wait-soft p-2.5 ${compact ? "w-full" : "w-48"}`}>
+      <div className={`control-fade-in flex flex-col gap-1.5 rounded-lg border border-wait/30 bg-wait-soft p-2.5 ${compact ? "w-full" : "w-48"}`}>
         <p className="text-xs text-wait font-medium leading-snug">
           Conflicts with {conflicts.map((x) => `${x.subject} ${x.courseNumber}`).join(", ")}
         </p>

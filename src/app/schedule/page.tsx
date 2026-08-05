@@ -121,13 +121,26 @@ export default function SchedulePage() {
   const { term } = useTerm();
   const { crns, removeCourse, addCourse } = useSchedule();
   const [lastDropped, setLastDropped] = useState<Course | null>(null);
+  const [toastDismissing, setToastDismissing] = useState(false);
+  const [dropId, setDropId] = useState(0);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (undoTimer.current) clearTimeout(undoTimer.current);
+      if (leaveTimer.current) clearTimeout(leaveTimer.current);
     };
   }, []);
+
+  function beginToastDismiss() {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setToastDismissing(true);
+    leaveTimer.current = setTimeout(() => {
+      setLastDropped(null);
+      setToastDismissing(false);
+    }, 160);
+  }
 
   const courses = useMemo(() => {
     return ALL_COURSES.filter((c) => crns.has(c.crn)).sort((a, b) => {
@@ -142,18 +155,20 @@ export default function SchedulePage() {
   function handleDrop(crn: string) {
     const course = courses.find((c) => c.crn === crn) ?? null;
     removeCourse(crn);
-    setLastDropped(course);
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
     if (undoTimer.current) clearTimeout(undoTimer.current);
+    setToastDismissing(false);
+    setLastDropped(course);
+    setDropId((id) => id + 1);
     if (course) {
-      undoTimer.current = setTimeout(() => setLastDropped(null), 6000);
+      undoTimer.current = setTimeout(beginToastDismiss, 6000);
     }
   }
 
   function handleUndoDrop() {
     if (!lastDropped) return;
     addCourse(lastDropped.crn);
-    setLastDropped(null);
-    if (undoTimer.current) clearTimeout(undoTimer.current);
+    beginToastDismiss();
   }
 
   const blocksByDay = useMemo(() => {
@@ -254,7 +269,7 @@ export default function SchedulePage() {
       ) : (
         <>
           {conflictPairs.length > 0 && (
-            <div className="rounded-xl bg-wait-soft border border-wait/20 px-4 py-3 mb-6 space-y-2.5">
+            <div className="menu-enter rounded-xl bg-wait-soft border border-wait/20 px-4 py-3 mb-6 space-y-2.5">
               <p className="flex items-center gap-2 text-wait text-sm font-medium">
                 <span aria-hidden>⚠</span>
                 {conflictPairs.length === 1
@@ -348,7 +363,7 @@ export default function SchedulePage() {
                               Enrolled
                             </span>
                             {hasConflict && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-wait-soft text-wait text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                              <span className="conflict-pop inline-flex items-center gap-1 rounded-full bg-wait-soft text-wait text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
                                 <span aria-hidden>⚠</span> Time Conflict
                               </span>
                             )}
@@ -397,7 +412,7 @@ export default function SchedulePage() {
                           Enrolled
                         </span>
                         {hasConflict && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-wait-soft text-wait text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                          <span className="conflict-pop inline-flex items-center gap-1 rounded-full bg-wait-soft text-wait text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
                             <span aria-hidden>⚠</span> Time Conflict
                           </span>
                         )}
@@ -473,7 +488,7 @@ export default function SchedulePage() {
                           }}
                         >
                           {block.conflict && (
-                            <p className="text-[9px] font-bold uppercase tracking-wide text-wait leading-tight">
+                            <p className="conflict-pop text-[9px] font-bold uppercase tracking-wide text-wait leading-tight">
                               ⚠ Conflict
                             </p>
                           )}
@@ -497,15 +512,22 @@ export default function SchedulePage() {
       {lastDropped && (
         <div
           role="status"
-          className="menu-enter fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-full border border-line bg-ink text-paper pl-4 pr-2 py-2 shadow-lg"
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 overflow-hidden rounded-full border border-line bg-ink text-paper shadow-lg ${
+            toastDismissing ? "toast-leave" : "menu-enter"
+          }`}
         >
-          <span className="text-sm whitespace-nowrap">Dropped {courseCode(lastDropped)}</span>
-          <button
-            onClick={handleUndoDrop}
-            className="rounded-full bg-paper/15 hover:bg-paper/25 px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
-          >
-            Undo
-          </button>
+          <div className="flex items-center gap-3 pl-4 pr-2 py-2">
+            <span className="text-sm whitespace-nowrap">Dropped {courseCode(lastDropped)}</span>
+            <button
+              onClick={handleUndoDrop}
+              className="rounded-full bg-paper/15 hover:bg-paper/25 px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+            >
+              Undo
+            </button>
+          </div>
+          <div className="h-0.5 bg-paper/15">
+            <div key={dropId} className="toast-countdown-bar h-full bg-gold" />
+          </div>
         </div>
       )}
     </div>

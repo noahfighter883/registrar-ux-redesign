@@ -86,9 +86,116 @@ body {
   transform-origin: top;
 }
 
+/* The one place in the app where a badge should announce itself: a
+   schedule conflict just got detected (or is still unresolved when the
+   page loads). Plays once on mount — conditional badges already
+   remount when the underlying conflict set changes. */
+@keyframes conflict-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.conflict-pop {
+  animation: conflict-pop 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Quick cross-fade for controls that swap their whole content in place
+   (Add to Schedule -> conflict confirm -> Enrolled), so the state
+   change reads as a transition rather than a jump-cut. */
+@keyframes control-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.control-fade-in {
+  animation: control-fade-in 0.16s ease-out both;
+}
+
+/* A selected filter chip appearing in the combobox trigger. */
+@keyframes chip-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chip-pop-in {
+  animation: chip-pop-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Undo toast: enters like a menu, exits down and out, and its countdown
+   bar is the only continuous animation in the app — bounded to the
+   toast's own lifetime and cancelled with it. */
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+}
+
+.toast-leave {
+  animation: toast-out 0.16s ease-in both;
+}
+
+@keyframes toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.toast-countdown-bar {
+  animation: toast-countdown 6s linear both;
+  transform-origin: left;
+}
+
+/* Mobile nav icon: cross-fades bars <-> X instead of an instant path swap. */
+@keyframes icon-swap-in {
+  from {
+    opacity: 0;
+    transform: rotate(-45deg) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.icon-swap-in {
+  animation: icon-swap-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
-  .menu-enter {
+  .menu-enter,
+  .conflict-pop,
+  .control-fade-in,
+  .chip-pop-in,
+  .toast-leave,
+  .toast-countdown-bar,
+  .icon-swap-in {
     animation: none;
   }
   * {
