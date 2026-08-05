@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect, useId } from "react";
 
-export type ComboboxItem = { value: string; label: string };
+export type ComboboxItem = { value: string; label: string; group?: string };
 
 export default function MultiSelectCombobox({
   items,
@@ -149,32 +149,43 @@ export default function MultiSelectCombobox({
             {filtered.map((item, i) => {
               const isSelected = selected.includes(item.value);
               const isActive = i === activeIndex;
+              // Group headers only make sense while browsing the full,
+              // pre-sorted list — an active search flattens results by
+              // relevance, so headers would be sparse and out of order.
+              const showHeader =
+                !query.trim() && item.group && item.group !== filtered[i - 1]?.group;
               return (
-                <button
-                  key={item.value}
-                  id={`${listId}-${i}`}
-                  role="option"
-                  aria-selected={isSelected}
-                  type="button"
-                  onMouseEnter={() => setActiveIndex(i)}
-                  onClick={() => toggle(item.value)}
-                  className={`w-full flex items-center gap-2.5 text-left px-3.5 py-2 text-sm ${
-                    isActive ? "bg-paper" : ""
-                  } ${isSelected ? "text-ink font-medium" : "text-ink-soft"}`}
-                >
-                  <span
-                    className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                      isSelected ? "bg-ink border-ink" : "border-line"
-                    }`}
+                <div key={item.value}>
+                  {showHeader && (
+                    <p className="px-3.5 pt-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                      {item.group}
+                    </p>
+                  )}
+                  <button
+                    id={`${listId}-${i}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    type="button"
+                    onMouseEnter={() => setActiveIndex(i)}
+                    onClick={() => toggle(item.value)}
+                    className={`w-full flex items-center gap-2.5 text-left px-3.5 py-2 text-sm ${
+                      isActive ? "bg-paper" : ""
+                    } ${isSelected ? "text-ink font-medium" : "text-ink-soft"}`}
                   >
-                    {isSelected && (
-                      <svg width="9" height="7" viewBox="0 0 9 7" className="text-paper">
-                        <path d="M1 3.5L3.2 5.7L8 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </span>
-                  {item.label}
-                </button>
+                    <span
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        isSelected ? "bg-ink border-ink" : "border-line"
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg width="9" height="7" viewBox="0 0 9 7" className="text-paper">
+                          <path d="M1 3.5L3.2 5.7L8 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </span>
+                    {item.label}
+                  </button>
+                </div>
               );
             })}
             {filtered.length === 0 && (

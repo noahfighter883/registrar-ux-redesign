@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { TERMS } from "@/lib/departments";
 import { useTerm } from "@/lib/useTerm";
+import { useSchedule } from "@/lib/useSchedule";
 
 const NAV_LINKS = [
   { href: "/", label: "Dashboard" },
@@ -15,6 +16,7 @@ const NAV_LINKS = [
 export default function SiteHeader() {
   const pathname = usePathname();
   const { term, setTerm } = useTerm();
+  const { crns } = useSchedule();
   const [termOpen, setTermOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const termRef = useRef<HTMLDivElement>(null);
@@ -58,8 +60,21 @@ export default function SiteHeader() {
     </Link>
   );
 
+  function handleTermSelect(id: string) {
+    // Switching terms while reviewing a built schedule silently swaps the
+    // grid under the student — confirm first so it isn't disorienting.
+    if (pathname === "/schedule" && crns.size > 0 && id !== term.id) {
+      const ok = window.confirm(
+        `Switch to a different term? Your ${term.label} schedule will no longer be shown.`
+      );
+      if (!ok) return;
+    }
+    setTerm(id);
+    setTermOpen(false);
+  }
+
   return (
-    <header className="border-b border-line bg-card/80 backdrop-blur sticky top-0 z-30">
+    <header className="border-b border-line bg-card/95 backdrop-blur-md sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
         <div className="flex items-center gap-3 shrink-0">
           <button
@@ -112,10 +127,7 @@ export default function SiteHeader() {
                   key={t.id}
                   role="option"
                   aria-selected={t.id === term.id}
-                  onClick={() => {
-                    setTerm(t.id);
-                    setTermOpen(false);
-                  }}
+                  onClick={() => handleTermSelect(t.id)}
                   className={`w-full text-left px-4 py-2 text-sm font-mono hover:bg-paper transition-colors flex items-center justify-between ${
                     t.id === term.id ? "text-ink font-semibold" : "text-ink-soft"
                   }`}

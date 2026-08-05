@@ -1,38 +1,43 @@
+export type Division = "Arts & Humanities" | "Sciences & Mathematics" | "Social Sciences";
+
 export type Department = {
   name: string;
   code: string;
+  division: Division;
   subCodes?: { code: string; label: string }[];
 };
 
 export const DEPARTMENTS: Department[] = [
-  { name: "American Studies", code: "AM" },
-  { name: "Anthropology", code: "AN" },
-  { name: "Art", code: "AR" },
-  { name: "Art History", code: "AH" },
-  { name: "Biology", code: "BI" },
-  { name: "Business", code: "MB" },
-  { name: "Chemistry", code: "CH" },
-  { name: "Computer Science", code: "CS" },
+  { name: "American Studies", code: "AM", division: "Social Sciences" },
+  { name: "Anthropology", code: "AN", division: "Social Sciences" },
+  { name: "Art", code: "AR", division: "Arts & Humanities" },
+  { name: "Art History", code: "AH", division: "Arts & Humanities" },
+  { name: "Biology", code: "BI", division: "Sciences & Mathematics" },
+  { name: "Business", code: "MB", division: "Social Sciences" },
+  { name: "Chemistry", code: "CH", division: "Sciences & Mathematics" },
+  { name: "Computer Science", code: "CS", division: "Sciences & Mathematics" },
   {
     name: "Dance",
     code: "DN",
+    division: "Arts & Humanities",
     subCodes: [
       { code: "DN-BAL", label: "Ballet" },
       { code: "DN-MOD", label: "Modern" },
       { code: "DN-CHO", label: "Choreography" },
     ],
   },
-  { name: "Economics", code: "EC" },
-  { name: "English", code: "EN" },
-  { name: "Environmental Studies", code: "ES" },
-  { name: "Mathematics", code: "MA" },
-  { name: "Music", code: "MU" },
-  { name: "Philosophy", code: "PH" },
-  { name: "Physics", code: "PS" },
-  { name: "Psychology", code: "PY" },
+  { name: "Economics", code: "EC", division: "Social Sciences" },
+  { name: "English", code: "EN", division: "Arts & Humanities" },
+  { name: "Environmental Studies", code: "ES", division: "Sciences & Mathematics" },
+  { name: "Mathematics", code: "MA", division: "Sciences & Mathematics" },
+  { name: "Music", code: "MU", division: "Arts & Humanities" },
+  { name: "Philosophy", code: "PH", division: "Arts & Humanities" },
+  { name: "Physics", code: "PS", division: "Sciences & Mathematics" },
+  { name: "Psychology", code: "PY", division: "Social Sciences" },
   {
     name: "World Languages & Literatures",
     code: "WL",
+    division: "Arts & Humanities",
     subCodes: [
       { code: "WL-FR", label: "French" },
       { code: "WL-SP", label: "Spanish" },

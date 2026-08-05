@@ -8,6 +8,7 @@ import { useTerm } from "@/lib/useTerm";
 import { useSchedule } from "@/lib/useSchedule";
 import StatusBadge from "@/components/StatusBadge";
 import { Course, withReservedSeat } from "@/lib/types";
+import { findConflicts } from "@/lib/scheduleConflicts";
 
 const PAGE_SIZE = 15;
 
@@ -27,17 +28,100 @@ function formatMeeting(course: Course) {
   ));
 }
 
+function AddToScheduleControl({
+  isAdded,
+  isFull,
+  conflicts,
+  confirming,
+  onAddClick,
+  onConfirmAdd,
+  onCancelConfirm,
+  onRemove,
+  compact,
+}: {
+  isAdded: boolean;
+  isFull: boolean;
+  conflicts: Course[];
+  confirming: boolean;
+  onAddClick: () => void;
+  onConfirmAdd: () => void;
+  onCancelConfirm: () => void;
+  onRemove: () => void;
+  compact?: boolean;
+}) {
+  if (isAdded) {
+    return (
+      <div className={`flex flex-col items-stretch gap-1.5 ${compact ? "w-full" : "w-36"}`}>
+        <Link
+          href="/schedule"
+          className="rounded-full bg-open text-white px-4 py-2 text-xs font-semibold text-center hover:bg-open/90 transition-colors"
+        >
+          View My Schedule
+        </Link>
+        <button
+          onClick={onRemove}
+          className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-center leading-tight text-ink-soft hover:border-full/40 hover:text-full transition-colors"
+        >
+          Remove from My Schedule
+        </button>
+      </div>
+    );
+  }
+
+  if (confirming) {
+    return (
+      <div className={`flex flex-col gap-1.5 rounded-lg border border-wait/30 bg-wait-soft p-2.5 ${compact ? "w-full" : "w-48"}`}>
+        <p className="text-xs text-wait font-medium leading-snug">
+          Conflicts with {conflicts.map((x) => `${x.subject} ${x.courseNumber}`).join(", ")}
+        </p>
+        <div className="flex gap-1.5">
+          <button
+            onClick={onConfirmAdd}
+            className="flex-1 rounded-full bg-ink text-paper px-2 py-1.5 text-xs font-semibold hover:bg-gold transition-colors"
+          >
+            Add anyway
+          </button>
+          <button
+            onClick={onCancelConfirm}
+            className="flex-1 rounded-full border border-line px-2 py-1.5 text-xs font-semibold text-ink-soft hover:border-ink-soft/40 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onAddClick}
+      disabled={isFull}
+      className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${compact ? "w-full" : ""} ${
+        isFull ? "bg-line text-muted cursor-not-allowed" : "bg-ink text-paper hover:bg-gold"
+      }`}
+    >
+      Add to Schedule
+    </button>
+  );
+}
+
 function ResultsInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { term } = useTerm();
-  const { isAdded, addCourse, removeCourse } = useSchedule();
+  const { crns, isAdded, addCourse, removeCourse } = useSchedule();
   const [page, setPage] = useState(1);
   const [openOnlyOverride, setOpenOnlyOverride] = useState(
     searchParams.get("openOnly") === "1"
   );
   const [sortKey, setSortKey] = useState<"course" | "credits" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [confirmingCrn, setConfirmingCrn] = useState<string | null>(null);
+
+  const scheduledCourses = useMemo(
+    () => ALL_COURSES.filter((c) => crns.has(c.crn)),
+    [crns]
+  );
 
   const filtered = useMemo(() => {
     const depts = (searchParams.get("dept") || "").split(",").filter(Boolean);
@@ -83,9 +167,18 @@ function ResultsInner() {
     }
   }
 
-  function toggleAdd(crn: string) {
-    if (isAdded(crn)) removeCourse(crn);
-    else addCourse(crn);
+  function handleAddClick(c: Course) {
+    const conflicts = findConflicts(c, scheduledCourses);
+    if (conflicts.length > 0) {
+      setConfirmingCrn(c.crn);
+    } else {
+      addCourse(c.crn);
+    }
+  }
+
+  function confirmAdd(crn: string) {
+    addCourse(crn);
+    setConfirmingCrn(null);
   }
 
   return (
@@ -131,7 +224,7 @@ function ResultsInner() {
       </div>
 
       <div className="rounded-2xl border border-line bg-card overflow-hidden">
-        <div className="overflow-auto max-h-[70vh]">
+        <div className="hidden md:block overflow-auto max-h-[70vh]">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="bg-paper border-b border-line shadow-[0_1px_0_0_var(--line)]">
@@ -149,61 +242,46 @@ function ResultsInner() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((c) => (
-                <tr key={c.crn} className="border-b border-line last:border-0 hover:bg-paper/60 align-top">
-                  <td className="px-4 py-4">
-                    <p className="font-mono text-sm font-semibold text-ink">
-                      {c.subject} {c.courseNumber}
-                    </p>
-                    <p className="font-mono text-xs text-muted">
-                      Sec {c.section} · CRN {c.crn}
-                    </p>
-                  </td>
-                  <td className="px-4 py-4">
-                    <p className="text-sm text-ink font-medium max-w-[220px]">{c.title}</p>
-                  </td>
-                  <td className="px-4 py-4">
-                    <p className="text-sm text-ink-soft whitespace-nowrap">{c.instructor}</p>
-                  </td>
-                  <td className="px-4 py-4 space-y-1">{formatMeeting(c)}</td>
-                  <td className="px-4 py-4">
-                    <p className="text-sm text-ink-soft">{c.credits}</p>
-                  </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge course={withReservedSeat(c, isAdded(c.crn))} />
-                  </td>
-                  <td className="px-4 py-4">
-                    {isAdded(c.crn) ? (
-                      <div className="flex flex-col items-stretch gap-1.5 w-36">
-                        <Link
-                          href="/schedule"
-                          className="rounded-full bg-open text-white px-4 py-2 text-xs font-semibold text-center hover:bg-open/90 transition-colors"
-                        >
-                          View My Schedule
-                        </Link>
-                        <button
-                          onClick={() => toggleAdd(c.crn)}
-                          className="rounded-full border border-line px-4 py-2 text-xs font-semibold text-center leading-tight text-ink-soft hover:border-full/40 hover:text-full transition-colors"
-                        >
-                          Remove from My Schedule
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => toggleAdd(c.crn)}
-                        disabled={c.seatsTaken >= c.seatsTotal}
-                        className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-colors ${
-                          c.seatsTaken >= c.seatsTotal
-                            ? "bg-line text-muted cursor-not-allowed"
-                            : "bg-ink text-paper hover:bg-gold"
-                        }`}
-                      >
-                        Add to Schedule
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {pageItems.map((c) => {
+                const conflicts = findConflicts(c, scheduledCourses);
+                return (
+                  <tr key={c.crn} className="border-b border-line last:border-0 hover:bg-paper/60 align-top">
+                    <td className="px-4 py-4">
+                      <p className="font-mono text-sm font-semibold text-ink">
+                        {c.subject} {c.courseNumber}
+                      </p>
+                      <p className="font-mono text-xs text-muted">
+                        Sec {c.section} · CRN {c.crn}
+                      </p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="text-sm text-ink font-medium max-w-[220px]">{c.title}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <p className="text-sm text-ink-soft whitespace-nowrap">{c.instructor}</p>
+                    </td>
+                    <td className="px-4 py-4 space-y-1">{formatMeeting(c)}</td>
+                    <td className="px-4 py-4">
+                      <p className="text-sm text-ink-soft">{c.credits}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <StatusBadge course={withReservedSeat(c, isAdded(c.crn))} />
+                    </td>
+                    <td className="px-4 py-4">
+                      <AddToScheduleControl
+                        isAdded={isAdded(c.crn)}
+                        isFull={c.seatsTaken >= c.seatsTotal}
+                        conflicts={conflicts}
+                        confirming={confirmingCrn === c.crn}
+                        onAddClick={() => handleAddClick(c)}
+                        onConfirmAdd={() => confirmAdd(c.crn)}
+                        onCancelConfirm={() => setConfirmingCrn(null)}
+                        onRemove={() => removeCourse(c.crn)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
               {pageItems.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center text-muted">
@@ -213,6 +291,49 @@ function ResultsInner() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="md:hidden divide-y divide-line">
+          {pageItems.map((c) => {
+            const conflicts = findConflicts(c, scheduledCourses);
+            return (
+              <div key={c.crn} className="p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-ink">
+                      {c.subject} {c.courseNumber}
+                    </p>
+                    <p className="font-mono text-xs text-muted">
+                      Sec {c.section} · CRN {c.crn}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted font-mono whitespace-nowrap">{c.credits} cr</span>
+                </div>
+                <p className="text-sm text-ink font-medium mb-1">{c.title}</p>
+                <p className="text-sm text-ink-soft mb-2">{c.instructor}</p>
+                <div className="space-y-1 mb-3">{formatMeeting(c)}</div>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <StatusBadge course={withReservedSeat(c, isAdded(c.crn))} />
+                </div>
+                <AddToScheduleControl
+                  isAdded={isAdded(c.crn)}
+                  isFull={c.seatsTaken >= c.seatsTotal}
+                  conflicts={conflicts}
+                  confirming={confirmingCrn === c.crn}
+                  onAddClick={() => handleAddClick(c)}
+                  onConfirmAdd={() => confirmAdd(c.crn)}
+                  onCancelConfirm={() => setConfirmingCrn(null)}
+                  onRemove={() => removeCourse(c.crn)}
+                  compact
+                />
+              </div>
+            );
+          })}
+          {pageItems.length === 0 && (
+            <div className="px-4 py-16 text-center text-muted">
+              No classes match your filters. Try widening your search.
+            </div>
+          )}
         </div>
 
         {totalPages > 1 && (

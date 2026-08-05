@@ -5,6 +5,7 @@ const secondaryCards = [
     href: "/prepare",
     title: "Prepare for Registration",
     body: "Check your registration status and clear any holds before your window opens.",
+    comingSoon: true,
     icon: (
       <path d="M9 12l2 2 4-4M7 4h10a2 2 0 012 2v13a1 1 0 01-1.45.9L12 18l-5.55 1.9A1 1 0 015 19V6a2 2 0 012-2z" />
     ),
@@ -19,6 +20,7 @@ const secondaryCards = [
     href: "/catalog",
     title: "Course Catalog",
     body: "Look up course descriptions, not tied to a specific term.",
+    comingSoon: true,
     icon: <path d="M12 6.25C10.5 5 8.5 4.5 6.5 4.5c-1.13 0-2.23.16-3.25.47v13.28c1.02-.31 2.12-.47 3.25-.47 2 0 4 .5 5.5 1.75m0-14C13.5 5 15.5 4.5 17.5 4.5c1.13 0 2.23.16 3.25.47v13.28c-1.02-.31-2.12-.47-3.25-.47-2 0-4 .5-5.5 1.75m0-14v14" />,
   },
 ];
@@ -67,17 +69,24 @@ export default function DashboardPage() {
             href={card.href}
             className="group rounded-xl border border-line bg-card p-6 hover:border-gold/40 hover:bg-gold-soft/30 hover:-translate-y-0.5 transition-all"
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              className="text-ink-soft mb-4"
-            >
-              {card.icon}
-            </svg>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                className="text-ink-soft"
+              >
+                {card.icon}
+              </svg>
+              {card.comingSoon && (
+                <span className="font-mono text-[10px] uppercase tracking-wide text-muted bg-paper border border-line rounded-full px-2 py-0.5 whitespace-nowrap">
+                  Coming soon
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-ink mb-1.5">{card.title}</h3>
             <p className="text-sm text-ink-soft leading-relaxed">{card.body}</p>
           </Link>

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ALL_COURSES } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
 import { useSchedule } from "@/lib/useSchedule";
 import { Course } from "@/lib/types";
+import { coursesConflict, parseMeetingMinutes } from "@/lib/scheduleConflicts";
 
 const DAY_LABELS: Record<string, string> = {
   Su: "Sunday",
@@ -33,21 +34,20 @@ const COURSE_COLORS = [
   { bg: "#fce7f3", text: "#9d174d", border: "#fbcfe8" },
 ];
 
+// Keyed by CRN (not list position), so a course's color stays the same
+// even after other courses are added or dropped.
+function courseColor(crn: string) {
+  let hash = 0;
+  for (let i = 0; i < crn.length; i++) hash = (hash * 31 + crn.charCodeAt(i)) >>> 0;
+  return COURSE_COLORS[hash % COURSE_COLORS.length];
+}
+
 function courseCode(c: Course) {
   return `${c.subject} ${c.courseNumber}${c.suffix ?? ""}`;
 }
 
 function formatDayTimeLines(c: Course) {
   return c.meetings.map((m) => `${m.days.map((d) => DAY_LABELS[d]).join("/")} ${m.start}–${m.end}`);
-}
-
-function parseMinutes(time: string) {
-  const [clock, ampm] = time.split(" ");
-  const [hStr, mStr] = clock.split(":");
-  let h = Number(hStr);
-  if (ampm === "PM" && h !== 12) h += 12;
-  if (ampm === "AM" && h === 12) h = 0;
-  return h * 60 + Number(mStr);
 }
 
 const GRID_START = 7 * 60;
@@ -119,7 +119,15 @@ function layoutBlocks(blocks: CalendarBlock[]): LaidOutBlock[] {
 
 export default function SchedulePage() {
   const { term } = useTerm();
-  const { crns, removeCourse } = useSchedule();
+  const { crns, removeCourse, addCourse } = useSchedule();
+  const [lastDropped, setLastDropped] = useState<Course | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    };
+  }, []);
 
   const courses = useMemo(() => {
     return ALL_COURSES.filter((c) => crns.has(c.crn)).sort((a, b) => {
@@ -131,13 +139,30 @@ export default function SchedulePage() {
 
   const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
 
-  const { blocksByDay, conflictCrns } = useMemo(() => {
+  function handleDrop(crn: string) {
+    const course = courses.find((c) => c.crn === crn) ?? null;
+    removeCourse(crn);
+    setLastDropped(course);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    if (course) {
+      undoTimer.current = setTimeout(() => setLastDropped(null), 6000);
+    }
+  }
+
+  function handleUndoDrop() {
+    if (!lastDropped) return;
+    addCourse(lastDropped.crn);
+    setLastDropped(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  }
+
+  const blocksByDay = useMemo(() => {
     const rawByDay = new Map<MeetingDay, CalendarBlock[]>(CALENDAR_DAYS.map((d) => [d, []]));
-    courses.forEach((course, i) => {
-      const color = COURSE_COLORS[i % COURSE_COLORS.length];
+    courses.forEach((course) => {
+      const color = courseColor(course.crn);
       course.meetings.forEach((m, mi) => {
-        const start = parseMinutes(m.start);
-        const end = parseMinutes(m.end);
+        const start = parseMeetingMinutes(m.start);
+        const end = parseMeetingMinutes(m.end);
         m.days.forEach((day) => {
           const bucket = rawByDay.get(day as MeetingDay);
           if (!bucket) return;
@@ -156,17 +181,32 @@ export default function SchedulePage() {
     });
 
     const laidOutByDay = new Map<MeetingDay, LaidOutBlock[]>();
-    const conflicts = new Set<string>();
     rawByDay.forEach((blocks, day) => {
-      const laidOut = layoutBlocks(blocks);
-      laidOut.forEach((b) => {
-        if (b.conflict) conflicts.add(b.crn);
-      });
-      laidOutByDay.set(day, laidOut);
+      laidOutByDay.set(day, layoutBlocks(blocks));
     });
 
-    return { blocksByDay: laidOutByDay, conflictCrns: conflicts };
+    return laidOutByDay;
   }, [courses]);
+
+  // Ground truth for "which courses conflict with which" — independent of
+  // the calendar's column-splitting layout, so the banner can name exact
+  // pairs and offer a resolution action for each.
+  const conflictPairs = useMemo(() => {
+    const pairs: { a: Course; b: Course }[] = [];
+    for (let i = 0; i < courses.length; i++) {
+      for (let j = i + 1; j < courses.length; j++) {
+        if (coursesConflict(courses[i], courses[j])) {
+          pairs.push({ a: courses[i], b: courses[j] });
+        }
+      }
+    }
+    return pairs;
+  }, [courses]);
+
+  const conflictCrns = useMemo(
+    () => new Set(conflictPairs.flatMap((p) => [p.a.crn, p.b.crn])),
+    [conflictPairs]
+  );
 
   const hourMarks = useMemo(() => {
     const marks: number[] = [];
@@ -213,17 +253,46 @@ export default function SchedulePage() {
         </div>
       ) : (
         <>
-          {conflictCrns.size > 0 && (
-            <div className="flex items-center gap-2 rounded-xl bg-wait-soft border border-wait/20 text-wait text-sm font-medium px-4 py-3 mb-6">
-              <span aria-hidden>⚠</span>
-              {conflictCrns.size === 1
-                ? "1 class has a time conflict with another class in your schedule."
-                : `${conflictCrns.size} classes have time conflicts with another class in your schedule.`}
+          {conflictPairs.length > 0 && (
+            <div className="rounded-xl bg-wait-soft border border-wait/20 px-4 py-3 mb-6 space-y-2.5">
+              <p className="flex items-center gap-2 text-wait text-sm font-medium">
+                <span aria-hidden>⚠</span>
+                {conflictPairs.length === 1
+                  ? "1 time conflict in your schedule."
+                  : `${conflictPairs.length} time conflicts in your schedule.`}
+              </p>
+              <ul className="space-y-2">
+                {conflictPairs.map((pair) => (
+                  <li
+                    key={`${pair.a.crn}-${pair.b.crn}`}
+                    className="flex flex-wrap items-center gap-2.5 text-sm text-ink-soft bg-card/70 rounded-lg px-3 py-2.5"
+                  >
+                    <span>
+                      <strong className="text-ink">{courseCode(pair.a)}</strong> and{" "}
+                      <strong className="text-ink">{courseCode(pair.b)}</strong> meet at the same time.
+                    </span>
+                    <span className="flex gap-1.5 sm:ml-auto">
+                      <button
+                        onClick={() => handleDrop(pair.a.crn)}
+                        className="rounded-full border border-wait/40 px-3 py-1 text-xs font-semibold text-wait hover:bg-wait/10 transition-colors whitespace-nowrap"
+                      >
+                        Drop {courseCode(pair.a)}
+                      </button>
+                      <button
+                        onClick={() => handleDrop(pair.b.crn)}
+                        className="rounded-full border border-wait/40 px-3 py-1 text-xs font-semibold text-wait hover:bg-wait/10 transition-colors whitespace-nowrap"
+                      >
+                        Drop {courseCode(pair.b)}
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
           <div className="rounded-2xl border border-line bg-card overflow-hidden">
-            <div className="overflow-auto">
+            <div className="hidden md:block overflow-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-paper border-b border-line">
@@ -238,8 +307,8 @@ export default function SchedulePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.map((c, i) => {
-                    const color = COURSE_COLORS[i % COURSE_COLORS.length];
+                  {courses.map((c) => {
+                    const color = courseColor(c.crn);
                     const hasConflict = conflictCrns.has(c.crn);
                     return (
                       <tr key={c.crn} className="border-b border-line last:border-0 hover:bg-paper/60 align-top">
@@ -287,7 +356,7 @@ export default function SchedulePage() {
                         </td>
                         <td className="px-4 py-4">
                           <button
-                            onClick={() => removeCourse(c.crn)}
+                            onClick={() => handleDrop(c.crn)}
                             className="rounded-full border border-line px-4 py-2 text-xs font-semibold whitespace-nowrap text-ink-soft hover:border-full/40 hover:text-full transition-colors"
                           >
                             Drop
@@ -298,6 +367,51 @@ export default function SchedulePage() {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            <div className="md:hidden divide-y divide-line">
+              {courses.map((c) => {
+                const color = courseColor(c.crn);
+                const hasConflict = conflictCrns.has(c.crn);
+                return (
+                  <div key={c.crn} className="p-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <span className="inline-flex items-center gap-2 font-mono text-sm font-semibold text-ink">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color.text }} />
+                        {courseCode(c)}
+                      </span>
+                      <span className="text-xs text-muted font-mono whitespace-nowrap">{c.credits} cr</span>
+                    </div>
+                    <p className="text-sm text-ink font-medium mb-1">{c.title}</p>
+                    <p className="font-mono text-xs text-muted mb-2">
+                      Sec {c.section} · CRN {c.crn}
+                    </p>
+                    <div className="text-sm text-ink-soft space-y-0.5 mb-3">
+                      {formatDayTimeLines(c).map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col items-start gap-1.5">
+                        <span className="inline-flex items-center rounded-full bg-open-soft text-open text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                          Enrolled
+                        </span>
+                        {hasConflict && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-wait-soft text-wait text-xs font-semibold px-2.5 py-1 whitespace-nowrap">
+                            <span aria-hidden>⚠</span> Time Conflict
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleDrop(c.crn)}
+                        className="rounded-full border border-line px-4 py-2 text-xs font-semibold whitespace-nowrap text-ink-soft hover:border-full/40 hover:text-full transition-colors shrink-0"
+                      >
+                        Drop
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -378,6 +492,21 @@ export default function SchedulePage() {
             </div>
           </div>
         </>
+      )}
+
+      {lastDropped && (
+        <div
+          role="status"
+          className="menu-enter fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-full border border-line bg-ink text-paper pl-4 pr-2 py-2 shadow-lg"
+        >
+          <span className="text-sm whitespace-nowrap">Dropped {courseCode(lastDropped)}</span>
+          <button
+            onClick={handleUndoDrop}
+            className="rounded-full bg-paper/15 hover:bg-paper/25 px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+          >
+            Undo
+          </button>
+        </div>
       )}
     </div>
   );

@@ -15,11 +15,16 @@ export default function SearchPage() {
   const { depts, subCode, title, instructors, courseMin, courseMax, creditMin, creditMax, openOnly } = filters;
 
   const deptItems = useMemo(
-    () => DEPARTMENTS.map((d) => ({ value: d.code, label: d.name })),
+    () =>
+      [...DEPARTMENTS]
+        .sort((a, b) => a.division.localeCompare(b.division) || a.name.localeCompare(b.name))
+        .map((d) => ({ value: d.code, label: d.name, group: d.division })),
     []
   );
   const instructorItems = useMemo(
-    () => INSTRUCTORS.map((name) => ({ value: name, label: name })),
+    // INSTRUCTORS is already alphabetized "Last, First", so grouping by
+    // first letter of the last name keeps each group's items contiguous.
+    () => INSTRUCTORS.map((name) => ({ value: name, label: name, group: name[0].toUpperCase() })),
     []
   );
 
@@ -103,7 +108,7 @@ export default function SearchPage() {
             value={title}
             onChange={(e) => setFilters({ title: e.target.value })}
             placeholder="e.g. Organic Chemistry"
-            className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+            className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm text-ink placeholder:text-muted placeholder:italic outline-none focus-visible:outline-2 focus-visible:outline-gold"
           />
         </Field>
 
@@ -126,7 +131,7 @@ export default function SearchPage() {
                 onChange={(e) => setFilters({ courseMin: e.target.value })}
                 placeholder="100"
                 maxLength={3}
-                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted placeholder:italic outline-none focus-visible:outline-2 focus-visible:outline-gold"
               />
               <span className="text-muted text-sm">–</span>
               <input
@@ -135,7 +140,7 @@ export default function SearchPage() {
                 onChange={(e) => setFilters({ courseMax: e.target.value })}
                 placeholder="299"
                 maxLength={3}
-                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted placeholder:italic outline-none focus-visible:outline-2 focus-visible:outline-gold"
               />
             </div>
           </Field>
@@ -148,7 +153,7 @@ export default function SearchPage() {
                 onChange={(e) => setFilters({ creditMin: e.target.value })}
                 placeholder="1"
                 maxLength={2}
-                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted placeholder:italic outline-none focus-visible:outline-2 focus-visible:outline-gold"
               />
               <span className="text-muted text-sm">–</span>
               <input
@@ -157,7 +162,7 @@ export default function SearchPage() {
                 onChange={(e) => setFilters({ creditMax: e.target.value })}
                 placeholder="4"
                 maxLength={2}
-                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted outline-none focus-visible:outline-2 focus-visible:outline-gold"
+                className="w-full rounded-lg border border-line bg-card px-3.5 py-2.5 text-sm font-mono text-ink placeholder:text-muted placeholder:italic outline-none focus-visible:outline-2 focus-visible:outline-gold"
               />
             </div>
           </Field>
