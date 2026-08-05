@@ -14,14 +14,12 @@ const PAGE_SIZE = 15;
 
 function formatMeeting(course: Course) {
   return course.meetings.map((m, i) => (
-    <div key={i} className="flex items-baseline gap-2 text-sm">
-      <span className="font-mono text-xs text-ink-soft tracking-tight shrink-0">
-        {m.days.join("")}
-      </span>
-      <span className="text-ink-soft whitespace-nowrap">
+    <div key={i} className="text-sm">
+      <span className="font-mono text-xs text-ink-soft tracking-tight">{m.days.join("")}</span>{" "}
+      <span className="text-ink-soft">
         {m.start}–{m.end}
       </span>
-      <span className="text-muted text-xs whitespace-nowrap">
+      <span className="block text-muted text-xs">
         {m.building} {m.room}
       </span>
     </div>
@@ -70,20 +68,20 @@ function AddToScheduleControl({
 
   if (confirming) {
     return (
-      <div className={`control-fade-in flex flex-col gap-1.5 rounded-lg border border-wait/30 bg-wait-soft p-2.5 ${compact ? "w-full" : "w-48"}`}>
+      <div className={`control-fade-in flex flex-col gap-1.5 rounded-lg border border-wait/30 bg-wait-soft p-2.5 ${compact ? "w-full" : "w-36"}`}>
         <p className="text-xs text-wait font-medium leading-snug">
           Conflicts with {conflicts.map((x) => `${x.subject} ${x.courseNumber}`).join(", ")}
         </p>
-        <div className="flex gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <button
             onClick={onConfirmAdd}
-            className="flex-1 rounded-full bg-ink text-paper px-2 py-1.5 text-xs font-semibold hover:bg-gold transition-colors"
+            className="rounded-full bg-ink text-paper px-2 py-1.5 text-xs font-semibold hover:bg-gold transition-colors"
           >
             Add anyway
           </button>
           <button
             onClick={onCancelConfirm}
-            className="flex-1 rounded-full border border-line px-2 py-1.5 text-xs font-semibold text-ink-soft hover:border-ink-soft/40 transition-colors"
+            className="rounded-full border border-line px-2 py-1.5 text-xs font-semibold text-ink-soft hover:border-ink-soft/40 transition-colors"
           >
             Cancel
           </button>
@@ -258,7 +256,7 @@ function ResultsInner() {
                       <p className="text-sm text-ink font-medium max-w-[220px]">{c.title}</p>
                     </td>
                     <td className="px-4 py-4">
-                      <p className="text-sm text-ink-soft whitespace-nowrap">{c.instructor}</p>
+                      <p className="text-sm text-ink-soft max-w-[140px]">{c.instructor}</p>
                     </td>
                     <td className="px-4 py-4 space-y-1">{formatMeeting(c)}</td>
                     <td className="px-4 py-4">
