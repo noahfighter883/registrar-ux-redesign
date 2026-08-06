@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ALL_COURSES } from "@/lib/mockCourses";
 import { useTerm } from "@/lib/useTerm";
@@ -560,74 +561,78 @@ export default function SchedulePage() {
         </>
       )}
 
-      {blockTooltip && (
-        <div
-          className="fixed z-50 pointer-events-none"
-          style={{
-            left: blockTooltip.left,
-            top: blockTooltip.top,
-            transform: `translate(-50%, ${blockTooltip.placement === "above" ? "-100%" : "0"})`,
-          }}
-        >
+      {blockTooltip &&
+        createPortal(
           <div
-            role="tooltip"
-            className="tooltip-pop w-64 rounded-xl border border-line bg-ink text-paper px-4 py-3 shadow-lg"
-            style={{ transformOrigin: blockTooltip.placement === "above" ? "bottom center" : "top center" }}
+            className="fixed z-50 pointer-events-none"
+            style={{
+              left: blockTooltip.left,
+              top: blockTooltip.top,
+              transform: `translate(-50%, ${blockTooltip.placement === "above" ? "-100%" : "0"})`,
+            }}
           >
-            <p className="font-mono text-xs uppercase tracking-wide text-paper/60 mb-1">
-              {blockTooltip.block.code} · Sec {blockTooltip.block.section}
-              {blockTooltip.conflict && <span className="text-wait"> · Conflict</span>}
-            </p>
-            <p className="font-display text-base leading-snug mb-2">{blockTooltip.block.course.title}</p>
-            <dl className="space-y-1 text-sm text-paper/85">
-              <div className="flex justify-between gap-4">
-                <dt className="text-paper/55">Instructor</dt>
-                <dd className="text-right">{blockTooltip.block.course.instructor}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-paper/55">Time</dt>
-                <dd className="text-right">{blockTooltip.block.timeLabel}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-paper/55">Location</dt>
-                <dd className="text-right">
-                  {blockTooltip.block.meeting.building} {blockTooltip.block.meeting.room}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-paper/55">Credits</dt>
-                <dd className="text-right">{blockTooltip.block.course.credits}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-paper/55">CRN</dt>
-                <dd className="text-right font-mono">{blockTooltip.block.crn}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      )}
-
-      {lastDropped && (
-        <div
-          role="status"
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 overflow-hidden rounded-full border border-line bg-ink text-paper shadow-lg ${
-            toastDismissing ? "toast-leave" : "menu-enter"
-          }`}
-        >
-          <div className="flex items-center gap-3 pl-4 pr-2 py-2">
-            <span className="text-sm whitespace-nowrap">Dropped {courseCode(lastDropped)}</span>
-            <button
-              onClick={handleUndoDrop}
-              className="rounded-full bg-paper/15 hover:bg-paper/25 px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+            <div
+              role="tooltip"
+              className="tooltip-pop w-64 rounded-xl border border-line bg-ink text-paper px-4 py-3 shadow-lg"
+              style={{ transformOrigin: blockTooltip.placement === "above" ? "bottom center" : "top center" }}
             >
-              Undo
-            </button>
-          </div>
-          <div className="h-0.5 bg-paper/15">
-            <div key={dropId} className="toast-countdown-bar h-full bg-gold" />
-          </div>
-        </div>
-      )}
+              <p className="font-mono text-xs uppercase tracking-wide text-paper/60 mb-1">
+                {blockTooltip.block.code} · Sec {blockTooltip.block.section}
+                {blockTooltip.conflict && <span className="text-wait"> · Conflict</span>}
+              </p>
+              <p className="font-display text-base leading-snug mb-2">{blockTooltip.block.course.title}</p>
+              <dl className="space-y-1 text-sm text-paper/85">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-paper/55">Instructor</dt>
+                  <dd className="text-right">{blockTooltip.block.course.instructor}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-paper/55">Time</dt>
+                  <dd className="text-right">{blockTooltip.block.timeLabel}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-paper/55">Location</dt>
+                  <dd className="text-right">
+                    {blockTooltip.block.meeting.building} {blockTooltip.block.meeting.room}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-paper/55">Credits</dt>
+                  <dd className="text-right">{blockTooltip.block.course.credits}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-paper/55">CRN</dt>
+                  <dd className="text-right font-mono">{blockTooltip.block.crn}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {lastDropped &&
+        createPortal(
+          <div
+            role="status"
+            className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-40 overflow-hidden rounded-full border border-line bg-ink text-paper shadow-lg ${
+              toastDismissing ? "toast-leave" : "menu-enter"
+            }`}
+          >
+            <div className="flex items-center gap-3 pl-4 pr-2 py-2">
+              <span className="text-sm whitespace-nowrap">Dropped {courseCode(lastDropped)}</span>
+              <button
+                onClick={handleUndoDrop}
+                className="rounded-full bg-paper/15 hover:bg-paper/25 px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap"
+              >
+                Undo
+              </button>
+            </div>
+            <div className="h-0.5 bg-paper/15">
+              <div key={dropId} className="toast-countdown-bar h-full bg-gold" />
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
