@@ -159,6 +159,20 @@ export default function SchedulePage() {
     setBlockTooltip(null);
   }
 
+  // The tooltip's position is computed once, from the block's screen
+  // rect at hover/focus time. If the page (or the calendar's own
+  // horizontal scroll) moves after that without the pointer actually
+  // leaving the block, the fixed-position tooltip would go stale and
+  // drift away from the block it describes — so drop it on any scroll.
+  useEffect(() => {
+    if (!blockTooltip) return;
+    function onScroll() {
+      setBlockTooltip(null);
+    }
+    window.addEventListener("scroll", onScroll, true);
+    return () => window.removeEventListener("scroll", onScroll, true);
+  }, [blockTooltip]);
+
   function beginToastDismiss() {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setToastDismissing(true);
